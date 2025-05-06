@@ -7,7 +7,7 @@ import pandas as pd
 import geopandas as gpd
 import matplotlib.pyplot as plt
 
-export = True
+export = False
 plot = True
 normalize = True
 
@@ -34,6 +34,7 @@ def read_excel_to_numpy(file_path, sheet_name, column_range, row_range):
 population_regions = read_excel_to_numpy('data/population_age_data.xlsx', 'Sheet 1', 'B', (15, 2153))
 population_names = read_excel_to_numpy('data/population_age_data.xlsx', 'Sheet 1', 'A', (15, 2153))
 healthcare_regions = read_excel_to_numpy('data/RYB2024_CH02_Health.xlsx', 'CH02M1', 'B', (2, 1199))
+area_regions = read_excel_to_numpy('data/area_data.xlsx', 'Sheet 1', 'A', (12, 1762))
 
 # Find indices where population_regions values are in healthcare_regions
 matching_indices = np.where(np.isin(population_regions, healthcare_regions))[0]
@@ -49,8 +50,14 @@ matching_healthcare_indices = np.array([
     for value in population_regions[integer_indices]
 ])
 
+matching_area_indices = np.array([
+    np.where(area_regions == value)[0][0] if value in area_regions else -1
+    for value in population_names[integer_indices]
+])
 
 healthcare = read_excel_to_numpy('data\RYB2024_CH02_Health.xlsx', 'CH02M1', 'C', (2, 1199))
+areas = read_excel_to_numpy('data/area_data.xlsx', 'Sheet 1', 'B', (12, 1762))
+
 
 # Annual emergencies per person by age group (<15, 15-64, 65+)
 emergency_age = np.array([0.0293, 0.0717, 0.3626])
@@ -61,7 +68,8 @@ unaccessible = 1 - healthcare[matching_healthcare_indices].astype(float) * 0.01
 crit_ems = (emergencies * unaccessible)[:, 0]
 
 if normalize:
-    crit_ems = crit_ems / np.sum(population[integer_indices], axis=1)
+    # crit_ems = crit_ems / np.sum(population[integer_indices], axis=1)
+    crit_ems = crit_ems / areas[matching_area_indices, 0].astype(float)
 
 sorted_indices = np.argsort(crit_ems)
 sorted_population_regions = population_names[integer_indices][sorted_indices]
@@ -73,7 +81,9 @@ if export:
     export_data = pd.DataFrame({
         'Region': sorted_population_regions.flatten(),
         'NUTS3 Code': population_regions[integer_indices][sorted_indices].flatten(),
-        'Critical Emergencies': crit_ems[sorted_indices]
+        'Critical Emergencies': crit_ems[sorted_indices],
+        'Emergencies': emergencies[sorted_indices].flatten(),
+        'areas': areas[matching_area_indices, 0][sorted_indices].flatten(),
     })
 
     # Export the DataFrame to an Excel file
@@ -100,14 +110,20 @@ if plot:
     fig, ax = plt.subplots(1, 1, figsize=(12, 8))
     merged_map.plot(column='crit_ems', cmap='Reds', legend=True, ax=ax)
 
+    # Define the colormap and normalization
+    cmap = plt.cm.Reds
+    norm = plt.Normalize(vmin=merged_map['crit_ems'].min(), vmax=merged_map['crit_ems'].max())
+
     # Add a title
-    ax.set_title('NUTS3 Regions Colored by Annual Emergencies not reached in 15 Minutes')
+    ax.set_title('NUTS3 Regions Colored by Annual Emergencies not reached in 15 Minutes, per km2')
 
     # Customize the legend to include the last 20 elements of sorted_population_regions
     legend_labels = [f"{sorted_population_regions[-x, 0]} - {round(crit_ems[sorted_indices][-x])}" for x in range(1, 31)]
 
     # Add the custom legend
-    handles = [plt.Line2D([0], [0], color='red', lw=4, label=label) for label in legend_labels]
+    handles = [
+    plt.Line2D([0], [0], color=cmap(norm(crit_ems[sorted_indices][-x])), lw=4, label=label)
+    for x, label in enumerate(legend_labels, start=1)]
     ax.legend(handles=handles, title="Worst 30 Regions", loc='lower left', bbox_to_anchor=(1, 0))
 
     # Show the plot
