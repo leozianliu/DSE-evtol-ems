@@ -17,69 +17,58 @@ t_landing = 60 #sec
 t_hover = landings*t_landing #sec
 t_cruise = range * 1000 / v_cruise #sec
 
-N_blades = 4 #Number of blades (between 2 and 6)
+LD_ratio = 10 #Lift to drag ratio
+
+
 N_disks = 6 #Number of disks (between 4 and 8)
 D_rotor = 3 #m (max w_hover/2)
 S_rotor = D_rotor**2 * np.pi / 4 #m^2
 S_disks = N_disks * S_rotor #m^2
-S_wing = 20 #m^2
-C_D = 0.05 #Drag coefficient
+A_front = 2 #m^2 #m^2 (area of the front of the vehicle)
+C_D = 0.4 #Drag coefficient of the front of the vehicle
 
 #Constants:
 g = 9.81 #m/s^2
 rho_air = 1.225 #kg/m^3
-Density_batt = 250*0.8 #Wh/kg
+density_batt = 250*3600*0.8 #Wh/kg, 80% depth of discharge
 
 #Code parameters:
 battery = True
 wing = False
-mtow_init = 2500 #kg
+mtow = 2500 * g #N
+mtow_prev = 0 #N
 
+while abs(mtow_prev - mtow) > 0.1:
+    print('Hey, I am in the loop')
+    #Energy calculation:
+    if wing:
+        T = mtow / LD_ratio #N
+        P_cruise = T * v_cruise #W
+    else:
+        F_sideways = 0.5 * rho_air * (v_cruise**2) * A_front * C_D #N
+        T = np.sqrt(mtow + F_sideways)
+        P_cruise = 1.15 * T**(3/2) / np.sqrt(2 * rho_air * S_disks) #W
+    E_cruise = P_cruise * t_cruise #J
 
-#Energy calculation:
+    T = mtow #N
+    P_induced = 1.15 * T**(3/2) / np.sqrt(2 * rho_air * S_disks) #W
+    P_profile = 0 # Neglect for now, but can be added later
+    P_hover = P_induced + P_profile #W
+    E_hover = P_hover * t_hover #J
 
-# P_parasite = 0
-# if wing:
-#     P_parasite += 0.5 * rho_air * (v_cruise**3) * S_wing * C_D #W
+    E_total = E_cruise + E_hover #J
 
-# P_climb = 0 # On average
-# P_hover 
-# P_hover = P_parasite + P_profile + P_climb + P_hover #W
+    # Energy source mass as a function of type, energy capacity and output power
+    m_powersource = E_total / density_batt #kg
 
-# if wing:
-#     D_cruise = 0.5 * rho_air * (v_cruise**2) * S_wing * C_D #N
-#     mu = v_cruise / V_tip #m/s
-#     P_cr_profile = 1/8 * rho_air * N_blades * V_tip**3 * S_disks * sigma * (1 + K * mu**2) * Cd_0 #W
-#     P_cr_induced = 0 # For cruise with wings
-#     P_cr_parasite = v_cruise * D_cruise #W
+    if wing:
+        # Wing mass, area, drag as a function of mtow, v_cruise
+        m_eom = 2200 / 3900 * mtow #kg (ratio for winged vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
+    else:
+        m_eom = 1700/3450 * mtow #kg (ratio for non-winged vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
 
+    mtow_prev = mtow #N
+    mtow = m_payload + m_powersource + m_eom #N
 
-
-P_cruise = P_cr_parasite + P_cr_induced + P_cr_profile #W
-E_cruise = P_cruise * t_cruise #J
-
-T = mtow_init * g #N
-P_induced = 1.15 * T**(3/2) / np.sqrt(2 * rho_air * S_disks) #W
-P_profile =
-P_hover = P_induced + P_profile #W
-E_hover = P_hover * t_hover #J
-
-E_total = E_cruise + E_hover
-
-# Energy source mass as a function of type, energy capacity and output power
-m_powersource = E_total / Density_batt #kg
-
-#Other weigths:
-m_eom = 0.2 * mtow_max #kg
-
-if wing:
-    # Wing mass, area, drag as a function of mtow, v_cruise
-    m_wing = 0.1 * mtow_max #kg
-    m_eom += m_wing #kg
-
-
-
-# Motor & driver mass as a function of power and torque
-m_propulsion = 0.1 * m_eom
-
-mtow = m_payload + m_powersource + m_eom + m_propulsion #kg
+print("Final MTOW: ", mtow / g, "kg")
+print("Final Power source ratio: ", m_powersource/mtow*100, "%")
