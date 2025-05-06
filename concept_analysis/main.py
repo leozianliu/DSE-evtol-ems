@@ -60,22 +60,26 @@ E_cruise = P_cruise * t_cruise #J
 
 T = mtow_init * g #N
 P_induced = 1.15 * T**(3/2) / np.sqrt(2 * rho_air * S_disks) #W
+P_profile =
 P_hover = P_induced + P_profile #W
 E_hover = P_hover * t_hover #J
 
 E_total = E_cruise + E_hover
 
-#Battery calculation:
+# Energy source mass as a function of type, energy capacity and output power
 m_powersource = E_total / Density_batt #kg
 
 #Other weigths:
 m_eom = 0.2 * mtow_max #kg
 
 if wing:
+    # Wing mass, area, drag as a function of mtow, v_cruise
     m_wing = 0.1 * mtow_max #kg
     m_eom += m_wing #kg
 
 
-m_propulsion = 0.1 * mtow_max #kg
+
+# Motor & driver mass as a function of power and torque
+m_propulsion = 0.1 * m_eom
 
 mtow = m_payload + m_powersource + m_eom + m_propulsion #kg

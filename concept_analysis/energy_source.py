@@ -1,0 +1,1 @@
+# Energy source mass as a function of type, energy capacity and output power
