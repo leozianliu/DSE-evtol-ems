@@ -22,7 +22,7 @@ class Wing:
         self.calculate_wing_mass()
 
     def calculate_wing_area(self):
-        CL_cruise = 1.2
+        CL_cruise = 0.8
         self.wing_area = (self.mtow / (0.5 * CL_cruise * 1.225 * self.v_cruise ** 2))  # m^2 (using lift equation)
         return self.wing_area
     
@@ -40,9 +40,9 @@ class Wing:
         self.wing_mass = self.mtom * 4.9e-3 * self.b_span**0.75 * (1 + np.sqrt(b_ref / self.b_span)) * n_ult**0.55 * (cantilever_ratio / self.wing_loading)**0.3 # kg (example formula for wing mass estimation)
         return self.wing_mass
 
-    def calculate_drag_coefficient(self):
-        # Constants for drag coefficient estimation (these values are placeholders and should be replaced with actual data)
-        aspect_ratio = 10  # example value for aspect ratio
-        C_D0 = 0.02  # zero-lift drag coefficient
-        C_D = C_D0 + (1 / aspect_ratio) * (self.mtow / self.v_cruise) ** 2  # drag coefficient estimation
-        return C_D
+    # def calculate_drag_coefficient(self):
+    #     # Constants for drag coefficient estimation (these values are placeholders and should be replaced with actual data)
+    #     aspect_ratio = 10  # example value for aspect ratio
+    #     C_D0 = 0.02  # zero-lift drag coefficient
+    #     C_D = C_D0 + (1 / aspect_ratio) * (self.mtow / self.v_cruise) ** 2  # drag coefficient estimation
+    #     return C_D
