@@ -36,6 +36,7 @@ density_batt = 250*3600*0.8*0.85 #Wh/kg, 80% depth of discharge
 #Code parameters:
 battery = True
 wing = True
+integrated_prop = True #Use the same motors for hover and cruise
 mtow = 2500 * g #N
 mtow_prev = 0 #N
 n = 1
@@ -70,11 +71,21 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
     # Energy source mass as a function of type, energy capacity and output power
     m_powersource = E_total / density_batt #kg
 
-    if wing:
+    if wing and integrated_prop:
         # Wing mass, area, drag as a function of mtow, v_cruise
+        # oem = battery + equipment + propulsion + structure
+        m_battery = 1000/3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
+        m_equipment = 450/3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
+        m_structure = /3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
+        eom = 
         m_eom = 2200/3900 * mtow/g #kg (ratio for winged vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
-    else:
+    elif wing and (not integrated_prop):
+        m_eom = 2200/3900 * mtow/g
+    elif (not wing):
         m_eom = 1500/3450 * mtow/g #kg (ratio for non-winged vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
+    else:
+        print("Error: No mass ratio for this configuration")
+        m_eom = 0
 
     mtow_prev = mtow #N
     mtow = (m_payload + m_powersource + m_eom) * g #N

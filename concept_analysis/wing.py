@@ -8,10 +8,12 @@ from helper import *
 
 # Wing mass, area, drag as a function of mtow, v_cruise
 class Wing:
-    def __init__(self, mtow, v_cruise, b_span):
+    def __init__(self, mtow, v_stall, b_span):
+        print('MTOW (N): ', mtow)
+        print('Stall speed (m/s): ', v_stall)
         self.mtow = mtow
         self.mtom = N_2_kg(mtow)
-        self.v_cruise = v_cruise
+        self.v_stall = v_stall
         self.b_span = b_span
 
         self.wing_area = None
@@ -23,7 +25,7 @@ class Wing:
 
     def calculate_wing_area(self):
         CL_cruise = 0.8
-        self.wing_area = (self.mtow / (0.5 * CL_cruise * 1.225 * self.v_cruise ** 2))  # m^2 (using lift equation)
+        self.wing_area = (self.mtow / (0.5 * CL_cruise * 1.225 * self.v_stall ** 2))  # m^2 (using lift equation)
         return self.wing_area
     
     def calculate_wing_loading(self):
