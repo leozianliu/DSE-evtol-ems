@@ -23,26 +23,33 @@ eff_motor = 0.95 #Efficiency of the motor
 eff_propeller = 0.85 #Efficiency of the propeller
 
 # Note: If integrated propulsion is used, N_disks_cruise is not used
+S_disks = 25 #m^2 (total disk area based on size requirements, can be changed later)
 N_disks_cruise = 2 #Number of disks (between 2 and 4)
-N_disks_takeoff = 8 #Number of disks (between 4 and 8)
-D_rotor = 3 #m (max w_hover/2)
-S_rotor = D_rotor**2 * np.pi / 4 #m^2
-S_disks = N_disks_takeoff * S_rotor #m^2
+N_disks_takeoff = 6 #Number of disks (between 4 and 8)
+#D_rotor = 4 #m (max w_hover/2)
+#S_rotor = D_rotor**2 * np.pi / 4 #m^2
+S_rotor = S_disks / N_disks_takeoff #m^2 (disk area per rotor)
+D_rotor = 2 * np.sqrt(S_rotor / np.pi) #m (diameter of the rotor)
+#S_disks = N_disks_takeoff * S_rotor #m^2
 A_front = 2 #m^2 #m^2 (area of the front of the vehicle)
 C_D = 0.4 #Drag coefficient of the front of the vehicle
+
+#User parameters:
+battery = True
+wing = True
+integrated_prop = False #Use the same motors for hover and cruise
+mtom = 2500 #kg #Maximum takeoff mass (MTOM) of the vehicle
 
 #Constants:
 g = 9.81 #m/s^2
 rho_air = 1.225 #kg/m^3
 density_batt = 300*3600*0.8*0.85 #300Wh/kg (Chinese), 80% depth of discharge
 
-#Code parameters:
-battery = True
-wing = True
-integrated_prop = False #Use the same motors for hover and cruise
-mtow = 2500 * g #N
+#Code parameters
 mtow_prev = 0 #N
 n = 1
+
+mtow = mtom * g #N (initial guess for MTOW)
 
 print("Winged: ", wing)
 
@@ -60,7 +67,7 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
             T = mtow / LD_ratio #N
         if not integrated_prop:
             # Cruise power calculation
-            T = mtow / (LD_ratio * 0.9)
+            T = mtow / (LD_ratio * 0.85) # Skin friction of motor booms increases total drag by 15%
         P_cruise = T * v_cruise
     else:
         F_sideways = 0.5 * rho_air * (v_cruise**2) * A_front * C_D #N
@@ -86,8 +93,8 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
         m_structure = 1000/3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
         P_cruise_single = P_cruise / N_disks_takeoff / 1000 #KW, again for integrated propulsion takeoff=cruise for N
         P_hover_single = P_hover / N_disks_takeoff / 1000 #KW (energy per disk)
-        m_propulsion = calculatePropulsionMass(P_cruise_single, P_hover_single, N_disks_takeoff) #kg (mass of the propulsion system)
-        m_propulsion = m_propulsion + N_disks_takeoff * 10 # mass of motor tilter system (20kg per motor)
+        m_propulsion = calculatePropulsionMass(P_cruise_single, P_hover_single, N_disks_takeoff, D_rotor) #kg (mass of the propulsion system)
+        m_propulsion = m_propulsion + N_disks_takeoff * 5 # mass of motor tilter system (20kg per motor)
         print("Propulsion mass: ", m_propulsion, "kg")
         m_eom = m_powersource + m_equipment + m_structure + m_propulsion
         print("Power mass:", m_powersource, "kg")
@@ -98,9 +105,10 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
         m_structure = 1000/3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
         P_cruise_single = P_cruise / N_disks_cruise / 1000 #KW, again for integrated propulsion takeoff=cruise for N
         P_hover_single = P_hover / N_disks_takeoff / 1000 #KW (energy per disk)
-        m_propulsion = calculatePropulsionMass(P_cruise_single, 0, N_disks_cruise) + calculatePropulsionMass(0, P_hover_single, N_disks_takeoff) #kg (mass of the propulsion system)
-        print("Propulsion mass cruise: ", calculatePropulsionMass(P_cruise_single, 0, N_disks_cruise), "kg")
-        print("Propulsion mass hover: ", calculatePropulsionMass(0, P_hover_single, N_disks_takeoff), "kg")
+        print('Single motor power takeoff (kW): ', P_hover_single)
+        m_propulsion = calculatePropulsionMass(P_cruise_single, 0, N_disks_cruise, D_rotor) + calculatePropulsionMass(0, P_hover_single, N_disks_takeoff, D_rotor) #kg (mass of the propulsion system)
+        print("Propulsion mass cruise: ", calculatePropulsionMass(P_cruise_single, 0, N_disks_cruise, D_rotor), "kg")
+        print("Propulsion mass hover: ", calculatePropulsionMass(0, P_hover_single, N_disks_takeoff, D_rotor), "kg")
         m_eom = m_powersource + m_equipment + m_structure + m_propulsion
     elif (not wing):
         m_eom = 1500/3450 * mtow/g #kg (ratio for non-winged vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
@@ -113,6 +121,6 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
 
 print("Number of iterations: ", n)
 print("Final MTOW: ", mtow / g, "kg")
-print("Final Power source ratio: ", m_powersource*g/mtow*100, "%")
+print("Final Power source mass: ", m_powersource, "kg")
 print("Final eom mass ratio: ", m_eom*g/mtow*100, "%")
-print(P_hover/1000)
+#print(P_hover/1000)
