@@ -23,9 +23,9 @@ eff_motor = 0.95 #Efficiency of the motor
 eff_propeller = 0.85 #Efficiency of the propeller
 
 # Note: If integrated propulsion is used, N_disks_cruise is not used
-S_disks = 25.13 #m^2 (total disk area based on size requirements, can be changed later)
-N_disks_cruise = 1 #Number of disks (between 2 and 4)
-N_disks_takeoff = 8 #Number of disks (between 4 and 8)
+S_disks = 35.33 #m^2 (total disk area based on size requirements, can be changed later)
+N_disks_cruise = 0 #Number of disks (between 2 and 4)
+N_disks_takeoff = 6 #Number of disks (between 4 and 8)
 #D_rotor = 4 #m (max w_hover/2)
 #S_rotor = D_rotor**2 * np.pi / 4 #m^2
 S_rotor = S_disks / N_disks_takeoff #m^2 (disk area per rotor)
