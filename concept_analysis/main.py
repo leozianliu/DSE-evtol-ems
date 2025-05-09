@@ -24,7 +24,7 @@ eff_propeller = 0.85 #Efficiency of the propeller
 
 # Note: If integrated propulsion is used, N_disks_cruise is not used
 S_disks = 35 #m^2 (total disk area based on size requirements, can be changed later)
-N_disks_cruise = 2 #Number of disks (between 2 and 4)
+N_disks_cruise = None #Number of disks (between 2 and 4)
 N_disks_takeoff = 6 #Number of disks (between 4 and 8)
 #D_rotor = 4 #m (max w_hover/2)
 #S_rotor = D_rotor**2 * np.pi / 4 #m^2
@@ -37,7 +37,7 @@ C_D = 0.4 #Drag coefficient of the front of the vehicle
 #Configuration parameters:
 battery = True
 wing = True
-integrated_prop = True #Use the same motors for hover and cruise
+integrated_prop = False #Use the same motors for hover and cruise
 tilt_wing = False
 
 #MTOW
@@ -51,8 +51,8 @@ density_batt = density_batt_whkg*3600*0.8*0.85 #80% depth of discharge
 separate_prop_extra_drag_factor = 1.10 # Skin friction of motor booms increases skin drag by 30% and total drag by 15% (skin drag is 50% of total drag)
 LD_reduction_factor = 1/separate_prop_extra_drag_factor
 blockage_factor_tiltwing = 0.9 # Free area over total area for propellers in tilt-wing configuration
-blockage_factor_tiltrotor = 0.75 # Free area over total area for propellers in tilt-rotor configuration
-blockage_factor_sepprop = 1 # Free area over total area for propellers in separate propulsion configuration
+blockage_factor_tiltrotor = None # Free area over total area for propellers in tilt-rotor configuration
+blockage_factor_sepprop = 0.86 # Free area over total area for propellers in separate propulsion configuration
 m_tilt_mech = 60 #kg for the tilt-wing mechanism
 
 #Code parameters

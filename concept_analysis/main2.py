@@ -23,9 +23,9 @@ eff_motor = 0.95 #Efficiency of the motor
 eff_propeller = 0.85 #Efficiency of the propeller
 
 # Note: If integrated propulsion is used, N_disks_cruise is not used
-S_disks = 35 #m^2 (total disk area based on size requirements, can be changed later)
-N_disks_cruise = 2 #Number of disks (between 2 and 4)
-N_disks_takeoff = 6 #Number of disks (between 4 and 8)
+S_disks = 25.13 #m^2 (total disk area based on size requirements, can be changed later)
+N_disks_cruise = 1 #Number of disks (between 2 and 4)
+N_disks_takeoff = 8 #Number of disks (between 4 and 8)
 #D_rotor = 4 #m (max w_hover/2)
 #S_rotor = D_rotor**2 * np.pi / 4 #m^2
 S_rotor = S_disks / N_disks_takeoff #m^2 (disk area per rotor)
@@ -37,7 +37,7 @@ C_D = 0.4 #Drag coefficient of the front of the vehicle
 #Configuration parameters:
 battery = True
 wing = True
-integrated_prop = True #Use the same motors for hover and cruise
+integrated_prop = False #Use the same motors for hover and cruise
 tilt_wing = False
 
 #MTOW
@@ -50,9 +50,9 @@ density_batt_whkg = 300 #300Wh/kg (Chinese),
 density_batt = density_batt_whkg*3600*0.8*0.85 #80% depth of discharge
 separate_prop_extra_drag_factor = 1.10 # Skin friction of motor booms increases skin drag by 30% and total drag by 15% (skin drag is 50% of total drag)
 LD_reduction_factor = 1/separate_prop_extra_drag_factor
-blockage_factor_tiltwing = 0.9 # Free area over total area for propellers in tilt-wing configuration
-blockage_factor_tiltrotor = 0.75 # Free area over total area for propellers in tilt-rotor configuration
-blockage_factor_sepprop = 1 # Free area over total area for propellers in separate propulsion configuration
+blockage_factor_tiltwing = 0.90 # Free area over total area for propellers in tilt-wing configuration
+blockage_factor_tiltrotor = 0.78 # Free area over total area for propellers in tilt-rotor configuration
+blockage_factor_sepprop = 0.86 # Free area over total area for propellers in separate propulsion configuration
 m_tilt_mech = 60 #kg for the tilt-wing mechanism
 
 #Code parameters
@@ -85,6 +85,10 @@ if not wing:
 # diameter_rotor = 2 * np.sqrt(S_disks/N_disks_takeoff / np.pi) #m (diameter of the rotor)
 # print("Diameter of the rotor: ", diameter_rotor, "m")
 
+print("Disk area original: ", S_disks, "m^2")
+S_disks = blockage_factor * S_disks #m2 (blockage factor for tilt-wing configuration)
+print('Disk area adjusted for blockage factor: ', S_disks, "m^2")
+
 while abs(mtow_prev - mtow) > 0.1 and n<1000:
     n+=1
     #Energy calculation:
@@ -106,7 +110,6 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
     P_induced = 1.15 * T**(3/2) / np.sqrt(2 * rho_air * S_disks) #W
     P_profile = 0 # Neglect for now, but can be added later
     P_hover = (P_induced + P_profile) / eff_motor / eff_propeller #W
-    P_hover = P_hover / blockage_factor #W (blockage factor for tilt-wing configuration)
     E_hover = P_hover * t_hover #J
 
     E_total = E_cruise + E_hover #J
@@ -124,7 +127,7 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
             P_hover_single = P_hover / N_disks_takeoff / 1000 #KW (energy per disk)
             # print('Single motor power takeoff (kW): ', P_hover_single)
             m_propulsion = calculatePropulsionMass(P_cruise_single, P_hover_single, N_disks_takeoff, D_rotor) #kg (mass of the propulsion system)
-            m_propulsion = m_propulsion + N_disks_takeoff * 5 # mass of motor tilter actuator (5kg per motor)
+            m_propulsion = m_propulsion + N_disks_takeoff * 10 # mass of motor tilter actuator (10kg per motor)
             # print("Propulsion mass: ", m_propulsion, "kg")
             m_eom = m_powersource + m_equipment + m_structure + m_propulsion
             # print("Power mass:", m_powersource, "kg")
@@ -133,7 +136,7 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
             # oem = battery + equipment + propulsion + structure
             m_equipment = 450/3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
             m_structure = 1000/3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
-            m_structure = m_structure + m_tilt_mech #kg for the tilt-wing mechanism (40kg for the tilt-wing mechanism)
+            m_structure = m_structure + m_tilt_mech #kg for the tilt-wing mechanism 
             P_cruise_single = P_cruise / N_disks_takeoff / 1000 #KW, again for integrated propulsion takeoff=cruise for N
             P_hover_single = P_hover / N_disks_takeoff / 1000 #KW (energy per disk)
             # print('Single motor power takeoff (kW): ', P_hover_single)
@@ -162,8 +165,8 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
     mtow = (m_payload + m_powersource + m_eom) * g #N
 
 print("---------------------------------")
-print("Rotor diameter", D_rotor, "m")
-print('Single motor power takeoff (kW): ', P_hover_single)
+print("Rotor diameter: ", D_rotor, "m")
+print('Single motor power takeoff: ', P_hover_single, "kW")
 print("Propulsion mass: ", m_propulsion, "kg")
 print("Power mass:", m_powersource, "kg")
 print("P_hover: ", P_hover / 1000, "kW")
