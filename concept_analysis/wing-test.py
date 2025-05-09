@@ -7,7 +7,7 @@ sys.path.append(f'{ROOT_DIR}/concept_analysis') # Replace with your own path so 
 from wing import Wing
 from helper import *
 
-wing = Wing(kg_2_N(2500), kmph_2_mps(200), 12) # Example values for mtow, v_cruise, span
+wing = Wing(kg_2_N(2600), kmph_2_mps(200), 12) # Example values for mtow, v_cruise, span
 print('Wing mass (kg)', wing.wing_mass)
 print('Wing area (m2)', wing.wing_area)
 # print('wing.mtom)
