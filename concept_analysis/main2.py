@@ -94,6 +94,9 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
     #Energy calculation:
     if wing:
         if integrated_prop:
+            LD_ratio = 13
+            if tilt_wing:
+                LD_ratio = 15
             # Cruise power calculation
             T = mtow / LD_ratio #N
         if not integrated_prop:
