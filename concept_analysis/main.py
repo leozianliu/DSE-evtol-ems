@@ -1,4 +1,5 @@
 import numpy as np
+from engine import *
 
 #Mission parameters:
 m_payload = 400 #kg
@@ -17,43 +18,83 @@ t_landing = 60 #sec
 t_hover = landings*t_landing #sec
 t_cruise = range * 1000 / v_cruise #sec
 
-LD_ratio = 10 #Lift to drag ratio
+LD_ratio = 12 #Lift to drag ratio
 eff_motor = 0.95 #Efficiency of the motor
 eff_propeller = 0.85 #Efficiency of the propeller
 
-N_disks = 6 #Number of disks (between 4 and 8)
-D_rotor = 3 #m (max w_hover/2)
-S_rotor = D_rotor**2 * np.pi / 4 #m^2
-S_disks = N_disks * S_rotor #m^2
-A_front = 2 #m^2 #m^2 (area of the front of the vehicle)
+# Note: If integrated propulsion is used, N_disks_cruise is not used
+S_disks = 35 #m^2 (total disk area based on size requirements, can be changed later)
+N_disks_cruise = 2 #Number of disks (between 2 and 4)
+N_disks_takeoff = 6 #Number of disks (between 4 and 8)
+#D_rotor = 4 #m (max w_hover/2)
+#S_rotor = D_rotor**2 * np.pi / 4 #m^2
+S_rotor = S_disks / N_disks_takeoff #m^2 (disk area per rotor)
+D_rotor = 2 * np.sqrt(S_rotor / np.pi) #m (diameter of the rotor)
+#S_disks = N_disks_takeoff * S_rotor #m^2
+A_front = 5 #m^2 #m^2 (area of the front of the vehicle)
 C_D = 0.4 #Drag coefficient of the front of the vehicle
+
+#Configuration parameters:
+battery = True
+wing = True
+integrated_prop = True #Use the same motors for hover and cruise
+tilt_wing = False
+
+#MTOW
+mtom = 2500 #kg #Maximum takeoff mass (MTOM) of the vehicle
 
 #Constants:
 g = 9.81 #m/s^2
 rho_air = 1.225 #kg/m^3
-density_batt = 250*3600*0.8*0.85 #Wh/kg, 80% depth of discharge
+density_batt_whkg = 300 #300Wh/kg (Chinese),
+density_batt = density_batt_whkg*3600*0.8*0.85 #80% depth of discharge
+separate_prop_extra_drag_factor = 1.15 # Skin friction of motor booms increases skin drag by 30% and total drag by 15% (skin drag is 50% of total drag)
+LD_reduction_factor = 1/separate_prop_extra_drag_factor
+blockage_factor_tiltwing = 0.9 # Free area over total area for propellers in tilt-wing configuration
+blockage_factor_tiltrotor = 0.7 # Free area over total area for propellers in tilt-rotor configuration
+blockage_factor_sepprop = 1 # Free area over total area for propellers in separate propulsion configuration
 
-#Code parameters:
-battery = True
-wing = True
-integrated_prop = True #Use the same motors for hover and cruise
-mtow = 2500 * g #N
+#Code parameters
 mtow_prev = 0 #N
 n = 1
 
+mtow = mtom * g #N (initial guess for MTOW)
+
+if tilt_wing and not integrated_prop:
+    print("Warning: Tilt-wing configuration must use integrated propulsion in this program.")
+    raise ValueError("Warning: Tilt-wing configuration must use integrated propulsion in this program.")
+
 print("Winged: ", wing)
+print("Integrated propulsion: ", integrated_prop)
+print("Tilt-wing: ", tilt_wing)
+
+if integrated_prop:
+    if tilt_wing:
+        blockage_factor = blockage_factor_tiltwing
+    else:
+        blockage_factor = blockage_factor_tiltrotor
+elif not integrated_prop:
+    blockage_factor = blockage_factor_sepprop
+else:
+    raise ValueError("Warning: No propeller blockage ratio for this configuration. Cry about it.")
 
 if not wing:
-    S_disks = 120 #m^2 (for now, but can be changed later)
-diameter_rotor = 2 * np.sqrt(S_disks/N_disks / np.pi) #m (diameter of the rotor)
-print("Diameter of the rotor: ", diameter_rotor, "m")
+    raise ValueError("Warning: Non-winged configuration not implemented yet. Cry about it.")
+#     S_disks = 120 #m^2 (for now, but can be changed later)
+# diameter_rotor = 2 * np.sqrt(S_disks/N_disks_takeoff / np.pi) #m (diameter of the rotor)
+# print("Diameter of the rotor: ", diameter_rotor, "m")
 
 while abs(mtow_prev - mtow) > 0.1 and n<1000:
     n+=1
     #Energy calculation:
     if wing:
-        T = mtow / LD_ratio #N
-        P_cruise = T * v_cruise #W
+        if integrated_prop:
+            # Cruise power calculation
+            T = mtow / LD_ratio #N
+        if not integrated_prop:
+            # Cruise power calculation
+            T = mtow / (LD_ratio * LD_reduction_factor) # Skin friction of motor booms increases skin drag by 30% and total drag by 15% (skin drag is 50% of total drag)
+        P_cruise = T * v_cruise
     else:
         F_sideways = 0.5 * rho_air * (v_cruise**2) * A_front * C_D #N
         T = np.sqrt(mtow**2 + F_sideways**2)
@@ -64,6 +105,7 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
     P_induced = 1.15 * T**(3/2) / np.sqrt(2 * rho_air * S_disks) #W
     P_profile = 0 # Neglect for now, but can be added later
     P_hover = (P_induced + P_profile) / eff_motor / eff_propeller #W
+    P_hover = P_hover / blockage_factor #W (blockage factor for tilt-wing configuration)
     E_hover = P_hover * t_hover #J
 
     E_total = E_cruise + E_hover #J
@@ -72,26 +114,61 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
     m_powersource = E_total / density_batt #kg
 
     if wing and integrated_prop:
+        if not tilt_wing:
+            # Wing mass, area, drag as a function of mtow, v_cruise
+            # oem = battery + equipment + propulsion + structure
+            m_equipment = 450/3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
+            m_structure = 1000/3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
+            P_cruise_single = P_cruise / N_disks_takeoff / 1000 #KW, again for integrated propulsion takeoff=cruise for N
+            P_hover_single = P_hover / N_disks_takeoff / 1000 #KW (energy per disk)
+            # print('Single motor power takeoff (kW): ', P_hover_single)
+            m_propulsion = calculatePropulsionMass(P_cruise_single, P_hover_single, N_disks_takeoff, D_rotor) #kg (mass of the propulsion system)
+            m_propulsion = m_propulsion + N_disks_takeoff * 5 # mass of motor tilter actuator (5kg per motor)
+            # print("Propulsion mass: ", m_propulsion, "kg")
+            m_eom = m_powersource + m_equipment + m_structure + m_propulsion
+            # print("Power mass:", m_powersource, "kg")
+        if tilt_wing:
+            # Wing mass, area, drag as a function of mtow, v_cruise
+            # oem = battery + equipment + propulsion + structure
+            m_equipment = 450/3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
+            m_structure = 1000/3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
+            P_cruise_single = P_cruise / N_disks_takeoff / 1000 #KW, again for integrated propulsion takeoff=cruise for N
+            P_hover_single = P_hover / N_disks_takeoff / 1000 #KW (energy per disk)
+            # print('Single motor power takeoff (kW): ', P_hover_single)
+            m_propulsion = calculatePropulsionMass(P_cruise_single, P_hover_single, N_disks_takeoff, D_rotor) #kg (mass of the propulsion system)
+            m_propulsion = m_propulsion + N_disks_takeoff * 5 # mass of motor tilter actuator (5kg per motor)
+            # print("Propulsion mass: ", m_propulsion, "kg")
+            m_eom = m_powersource + m_equipment + m_structure + m_propulsion
+            # print("Power mass:", m_powersource, "kg")
+    elif wing and (not integrated_prop):
         # Wing mass, area, drag as a function of mtow, v_cruise
         # oem = battery + equipment + propulsion + structure
-        m_battery = 1000/3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
         m_equipment = 450/3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
-        m_structure = /3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
-        eom = 
-        m_eom = 2200/3900 * mtow/g #kg (ratio for winged vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
-    elif wing and (not integrated_prop):
-        m_eom = 2200/3900 * mtow/g
+        m_structure = 1000/3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
+        P_cruise_single = P_cruise / N_disks_cruise / 1000 #KW, again for integrated propulsion takeoff=cruise for N
+        P_hover_single = P_hover / N_disks_takeoff / 1000 #KW (energy per disk)
+        # print('Single motor power takeoff (kW): ', P_hover_single)
+        m_propulsion = calculatePropulsionMass(P_cruise_single, 0, N_disks_cruise, D_rotor) + calculatePropulsionMass(0, P_hover_single, N_disks_takeoff, D_rotor) #kg (mass of the propulsion system)
+        # print("Propulsion mass cruise: ", calculatePropulsionMass(P_cruise_single, 0, N_disks_cruise, D_rotor), "kg")
+        # print("Propulsion mass hover: ", calculatePropulsionMass(0, P_hover_single, N_disks_takeoff, D_rotor), "kg")
+        m_eom = m_powersource + m_equipment + m_structure + m_propulsion
     elif (not wing):
         m_eom = 1500/3450 * mtow/g #kg (ratio for non-winged vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
     else:
-        print("Error: No mass ratio for this configuration")
-        m_eom = 0
+        raise ValueError("Warning: No mass ratio for this configuration. Cry about it.")
 
     mtow_prev = mtow #N
     mtow = (m_payload + m_powersource + m_eom) * g #N
 
+print("---------------------------------")
+print("Rotor diameter", D_rotor, "m")
+print('Single motor power takeoff (kW): ', P_hover_single)
+print("Propulsion mass: ", m_propulsion, "kg")
+print("Power mass:", m_powersource, "kg")
+print("P_hover: ", P_hover / 1000, "kW")
+print("P_cruise: ", P_cruise / 1000, "kW")
 print("Number of iterations: ", n)
 print("Final MTOW: ", mtow / g, "kg")
-print("Final Power source ratio: ", m_powersource*g/mtow*100, "%")
+print("Final Power source mass: ", m_powersource, "kg")
 print("Final eom mass ratio: ", m_eom*g/mtow*100, "%")
-print(P_hover/1000)
+#print(P_hover/1000)
