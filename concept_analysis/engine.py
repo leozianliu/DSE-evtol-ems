@@ -20,7 +20,7 @@ def calculatePropulsionMass(cont_power, peak_power, n_motor, D_rotor):#def calcu
 
     m_inverter = 0.0187*cont_power + 0.433
 
-    m_propeller = 7.5 * (D_rotor/2.3) # Volocopter's rotor mass is 7.5 kg for 2.3 m diameter rotor, assumes a linear scaling with diameter
+    m_propeller = 7.5 * (D_rotor/2.3)**2 # Volocopter's rotor mass is 7.5 kg for 2.3 m diameter rotor, assumes a linear scaling with diameter
 
     return (m_motor + m_inverter + m_propeller)*n_motor
 
