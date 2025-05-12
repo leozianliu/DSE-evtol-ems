@@ -4,7 +4,7 @@ from engine import *
 #Mission parameters:
 m_payload = 400 #kg
 range = 120 #km
-landings = 2
+landings = 4
 v_cruise = 200/3.6 #m/s
 v_hover = 67/3.6 #m/s
 w_hover = 6 #m
@@ -18,7 +18,7 @@ t_landing = 60 #sec
 t_hover = landings*t_landing #sec
 t_cruise = range * 1000 / v_cruise #sec
 
-LD_ratio = 12 #Lift to drag ratio
+LD_ratio = 15 #Lift to drag ratio
 eff_motor = 0.95 #Efficiency of the motor
 eff_propeller = 0.85 #Efficiency of the propeller
 
@@ -37,7 +37,7 @@ C_D = 0.4 #Drag coefficient of the front of the vehicle
 #Configuration parameters:
 battery = True
 wing = True
-integrated_prop = False #Use the same motors for hover and cruise
+integrated_prop = True #Use the same motors for hover and cruise
 tilt_wing = False
 
 #MTOW
@@ -47,11 +47,11 @@ mtom = 2500 #kg #Maximum takeoff mass (MTOM) of the vehicle (GUESS)
 g = 9.81 #m/s^2
 rho_air = 1.225 #kg/m^3
 density_batt_whkg = 300 #300Wh/kg (Chinese),
-density_batt = density_batt_whkg*3600*0.8*0.85 #80% depth of discharge
+density_batt = density_batt_whkg*3600*0.80 #degrade to 80% of the battery capacity
 separate_prop_extra_drag_factor = 1.10 # Skin friction of motor booms increases skin drag by 30% and total drag by 15% (skin drag is 50% of total drag)
 LD_reduction_factor = 1/separate_prop_extra_drag_factor
-blockage_factor_tiltwing = 0.9 # Free area over total area for propellers in tilt-wing configuration
-blockage_factor_tiltrotor = None # Free area over total area for propellers in tilt-rotor configuration
+blockage_factor_tiltwing = 0.90 # Free area over total area for propellers in tilt-wing configuration
+blockage_factor_tiltrotor = 0.78 # Free area over total area for propellers in tilt-rotor configuration
 blockage_factor_sepprop = 0.86 # Free area over total area for propellers in separate propulsion configuration
 m_tilt_mech = 60 #kg for the tilt-wing mechanism
 
@@ -96,10 +96,10 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
             # Cruise power calculation
             T = mtow / (LD_ratio * LD_reduction_factor) # Skin friction of motor booms increases skin drag by 30% and total drag by 15% (skin drag is 50% of total drag)
         P_cruise = T * v_cruise
-    else:
-        F_sideways = 0.5 * rho_air * (v_cruise**2) * A_front * C_D #N
-        T = np.sqrt(mtow**2 + F_sideways**2)
-        P_cruise = 1.15 * T**(3/2) / np.sqrt(2 * rho_air * S_disks) #W
+    # else:
+    #     F_sideways = 0.5 * rho_air * (v_cruise**2) * A_front * C_D #N
+    #     T = np.sqrt(mtow**2 + F_sideways**2)
+    #     P_cruise = 1.15 * T**(3/2) / np.sqrt(2 * rho_air * S_disks) #W
     E_cruise = P_cruise * t_cruise #J
 
     T = mtow #N
