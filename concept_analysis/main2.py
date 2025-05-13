@@ -98,7 +98,7 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
         if not integrated_prop:
             # Cruise power calculation
             T = mtow / (LD_ratio * LD_reduction_factor) # Skin friction of motor booms increases skin drag by 30% and total drag by 15% (skin drag is 50% of total drag)
-        P_cruise = T * v_cruise
+        P_cruise = T * v_cruise / eff_motor
     else:
         F_sideways = 0.5 * rho_air * (v_cruise**2) * A_front * C_D #N
         T = np.sqrt(mtow**2 + F_sideways**2)
