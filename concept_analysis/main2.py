@@ -20,7 +20,7 @@ t_cruise = range * 1000 / v_cruise #sec
 
 LD_ratio = 15 #Lift to drag ratio
 eff_motor = 0.95 #Efficiency of the motor
-eff_propeller = 0.85 #Efficiency of the propeller
+eff_propeller_takeoff = 0.85 #Efficiency of the propeller
 
 # Note: If integrated propulsion is used, N_disks_cruise is not used
 S_disks = 35 #m^2 (total disk area based on size requirements, can be changed later)
@@ -108,7 +108,7 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
     T = mtow #N
     P_induced = 1.15 * T**(3/2) / np.sqrt(2 * rho_air * S_disks) #W
     P_profile = 0 # Neglect for now, but can be added later
-    P_hover = (P_induced + P_profile) / eff_motor / eff_propeller #W
+    P_hover = (P_induced + P_profile) / eff_motor / eff_propeller_takeoff #W
     E_hover = P_hover * t_hover #J
 
     E_total = E_cruise + E_hover #J
