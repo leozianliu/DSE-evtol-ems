@@ -93,17 +93,16 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
     n+=1
     #Energy calculation:
     if wing:
-        if integrated_prop:
-            # Cruise power calculation
-            T = mtow / LD_ratio #N
+        # Cruise power calculation
+        T = mtow / LD_ratio #N
         if not integrated_prop:
             # Cruise power calculation
             T = mtow / (LD_ratio * LD_reduction_factor) # Skin friction of motor booms increases skin drag by 30% and total drag by 15% (skin drag is 50% of total drag)
         P_cruise = T * v_cruise
-    # else:
-    #     F_sideways = 0.5 * rho_air * (v_cruise**2) * A_front * C_D #N
-    #     T = np.sqrt(mtow**2 + F_sideways**2)
-    #     P_cruise = 1.15 * T**(3/2) / np.sqrt(2 * rho_air * S_disks) #W
+    else:
+        F_sideways = 0.5 * rho_air * (v_cruise**2) * A_front * C_D #N
+        T = np.sqrt(mtow**2 + F_sideways**2)
+        P_cruise = 1.15 * T**(3/2) / np.sqrt(2 * rho_air * S_disks) #W
     E_cruise = P_cruise * t_cruise #J
 
     T = mtow #N
@@ -136,7 +135,7 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
             # oem = battery + equipment + propulsion + structure
             m_equipment = 450/3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
             m_structure = 1000/3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
-            m_structure = m_structure + m_tilt_mech #kg for the tilt-wing mechanism (40kg for the tilt-wing mechanism)
+            m_structure = m_structure + m_tilt_mech #kg for the tilt-wing mechanism 
             P_cruise_single = P_cruise / N_disks_takeoff / 1000 #KW, again for integrated propulsion takeoff=cruise for N
             P_hover_single = P_hover / N_disks_takeoff / 1000 #KW (energy per disk)
             # print('Single motor power takeoff (kW): ', P_hover_single)
@@ -165,14 +164,14 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
     mtow = (m_payload + m_powersource + m_eom) * g #N
 
 print("---------------------------------")
-print("Rotor diameter", D_rotor, "m")
-print('Single motor power takeoff (kW): ', P_hover_single)
-print("Propulsion mass: ", m_propulsion, "kg")
-print("Power mass:", m_powersource, "kg")
+print("Rotor diameter: ", D_rotor, "m")
+print('Single motor power takeoff: ', P_hover_single, "kW")
+# print("Power mass:", m_powersource, "kg")
 print("P_hover: ", P_hover / 1000, "kW")
 print("P_cruise: ", P_cruise / 1000, "kW")
 print("Number of iterations: ", n)
 print("Final MTOW: ", mtow / g, "kg")
-print("Final Power source mass: ", m_powersource, "kg")
-print("Final eom mass ratio: ", m_eom*g/mtow*100, "%")
+print("Final Propulsion mass: ", m_propulsion, "kg")
+print("Final Power Source mass: ", m_powersource, "kg")
+print("Final EOM mass ratio: ", m_eom*g/mtow*100, "%")
 #print(P_hover/1000)
