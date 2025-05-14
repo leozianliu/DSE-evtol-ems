@@ -34,7 +34,9 @@ class Propeller:
             if len(valid_roots) == 1:
                 self.downstream_velocity = float(valid_roots[0])
             else:
-                raise ValueError("Multiple or no real and positive downstream velocity solutions found in Propeller.compute_thrust")
+                #raise ValueError("Multiple or no real and positive downstream velocity solutions found in Propeller.compute_thrust")
+                self.downstream_velocity = self.freestream_velocity
+                return 0
 
             propeller_airspeed = (self.freestream_velocity + self.downstream_velocity) / 2
             self.propeller_thrust = (
