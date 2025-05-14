@@ -23,7 +23,7 @@ eff_motor = 0.95 #Efficiency of the motor
 eff_propeller_takeoff = 0.85 #Efficiency of the propeller
 
 # Note: If integrated propulsion is used, N_disks_cruise is not used
-S_disks = 35 #m^2 (total disk area based on size requirements, can be changed later)
+S_disks = 35.3 #m^2 (total disk area based on size requirements, can be changed later)
 N_disks_cruise = None #Number of disks (between 2 and 4)
 N_disks_takeoff = 6 #Number of disks (between 4 and 8)
 #D_rotor = 4 #m (max w_hover/2)
@@ -38,7 +38,7 @@ C_D = 0.4 #Drag coefficient of the front of the vehicle
 battery = True
 wing = True
 integrated_prop = True #Use the same motors for hover and cruise
-tilt_wing = False
+tilt_wing = True
 
 #MTOW
 mtom = 2500 #kg #Maximum takeoff mass (MTOM) of the vehicle (GUESS)
@@ -98,7 +98,7 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
         if not integrated_prop:
             # Cruise power calculation
             T = mtow / (LD_ratio * LD_reduction_factor) # Skin friction of motor booms increases skin drag by 30% and total drag by 15% (skin drag is 50% of total drag)
-        P_cruise = T * v_cruise / eff_motor
+        P_cruise = T * v_cruise# / eff_motor
     else:
         F_sideways = 0.5 * rho_air * (v_cruise**2) * A_front * C_D #N
         T = np.sqrt(mtow**2 + F_sideways**2)
@@ -126,7 +126,7 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
             P_hover_single = P_hover / N_disks_takeoff / 1000 #KW (energy per disk)
             # print('Single motor power takeoff (kW): ', P_hover_single)
             m_propulsion = calculatePropulsionMass(P_cruise_single, P_hover_single, N_disks_takeoff, D_rotor) #kg (mass of the propulsion system)
-            m_propulsion = m_propulsion + N_disks_takeoff * 10 # mass of motor tilter actuator (10kg per motor)
+            m_propulsion = m_propulsion + N_disks_takeoff * 15 # mass of motor tilter actuator (10kg per motor)
             # print("Propulsion mass: ", m_propulsion, "kg")
             m_eom = m_powersource + m_equipment + m_structure + m_propulsion
             # print("Power mass:", m_powersource, "kg")
