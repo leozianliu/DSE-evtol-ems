@@ -1,10 +1,11 @@
 import numpy as np
 
 class Propeller:
-    def __init__(self, shaft_power, freestream_velocity, freestream_density, freestream_temperature, propeller_diameter, RPM, number_blades):
+    def __init__(self, shaft_power, propeller_thrust, freestream_velocity, freestream_density, freestream_temperature, propeller_diameter, RPM, number_blades):
         
         # Inputs, all are floats
         self.shaft_power = shaft_power # shaft power after motor efficiency in Watts
+        self.propeller_thrust = propeller_thrust # motor 
         self.freestream_velocity = freestream_velocity # velocity in m/s
         self.freestream_density = freestream_density # ambient density in kg/m^3
         self.freestream_temperature = freestream_temperature # ambient temperature in Kelvin
@@ -15,17 +16,17 @@ class Propeller:
         self.maximum_blade_mach = 0.8 # Maximum Mach number to avoid shockwaves on the blade tips
         self.speed_of_sound = np.sqrt(self.gamma_specific_speeds_ratio * self.freestream_temperature * self.R_air_constant)
         self.RPM = RPM # Rotations per minute of propeller blades
-        self.advance_ratio = self.freestream_velocity / self.propeller_diameter / (self.RPM / 60)
         self.number_blades = number_blades # Number of blades of the propeller
 
         # These will be computed
         self.downstream_velocity = None
-        self.propeller_thrust = None 
+
         self.propeller_efficiency = None
         self.maximum_RPM = None
         self.maximum_tip_speed = None
         self.induced_velocity = None
         self.power_required = None
+        self.advance_ratio = None
         
     def compute_power_required(self, true_if_compute_power_false_if_compute_thrust=True):
 
@@ -42,7 +43,7 @@ class Propeller:
         omega = 0.10472 * self.RPM
 
         converged = False
-        max_iterations = 1e6
+        max_iterations = 100000
         epsilon_tol = 1e-6
 
         r = np.linspace(r_hub, self.propeller_diameter/2, N)
@@ -54,9 +55,12 @@ class Propeller:
         x = xi / lamda
 
         if true_if_compute_power_false_if_compute_thrust:
-            power_coefficient = 2 * self.power_required / (self.freestream_density * self.freestream_velocity ** 3 * np.pi * (self.propeller_diameter/2) ** 2)
-        else: 
+
             thrust_coefficient = 2 * self.propeller_thrust / (self.freestream_density * self.freestream_velocity ** 2 * np.pi * (self.propeller_diameter/2) ** 2)
+
+        else: 
+            
+            power_coefficient = 2 * self.power_required / (self.freestream_density * self.freestream_velocity ** 3 * np.pi * (self.propeller_diameter/2) ** 2)
 
         # Estimate power required from thust
         while not converged and max_iterations:
@@ -65,7 +69,6 @@ class Propeller:
             phi_tip = np.arctan(tan_phi_tip)
 
             phi = np.arctan(tan_phi_tip / xi)
-
             F = (2/np.pi) * np.rad2deg(np.arccos(np.exp(-(self.number_blades/2) * (1 - xi) / (np.sin(phi_tip)))))
             G = F * np.cos(phi) * np.sin(phi) * x
 
@@ -80,9 +83,9 @@ class Propeller:
 
             # === Eq. 11 integrands ===
             I1_integrand = 4 * G * xi * (1 - s * np.tan(phi)) 
-            I2_integrand = lamda * (I1/ xi / 2) * (1 + s / np.tan(phi)) * np.sin(phi) * np.cos(phi)
+            I2_integrand = lamda * (I1_integrand/ xi / 2) * (1 + s / np.tan(phi)) * np.sin(phi) * np.cos(phi)
             J1_integrand = 4 * xi * G * (1 + s / np.tan(phi))
-            J2_integrand = (J1 / 2) * (1 - s * np.tan(phi)) * np.cos(phi)**2
+            J2_integrand = (J1_integrand / 2) * (1 - s * np.tan(phi)) * np.cos(phi)**2
             
 
             I1 = np.trapz(I1_integrand, xi)
@@ -99,32 +102,40 @@ class Propeller:
                 thrust_coefficient = I1 * epsilon_new - I2 * epsilon_new ** 2
 
             # Update epsilon
-            max_iter -= 1
+            max_iterations -= 1
 
             if abs(epsilon_new - epsilon) < epsilon_tol:
                 converged = True
             
             epsilon = epsilon_new
 
-        self.propeller_thrust = 0.5 * thrust_coefficient * self.freestream_velocity * self.freestream_velocity ** 2 * np.pi * (self.propeller_diameter/2) ** 2
-        self.power_required = power_coefficient * 0.5 * self.freestream_density * self.freestream_velocity ** 3 * np.pi * (self.propeller_diameter/2) ** 2
+        if true_if_compute_power_false_if_compute_thrust:
 
-        CT = self.propeller_thrust / (self.freestream_density * (self.RPM / 60)**2 * (2 * (self.propeller_diameter/2)) ** 4)
-        CP = self.power_required / (self.freestream_density * (self.RPM / 60)**3 * (2 * (self.propeller_diameter/2)) ** 5)
+            power_coefficient = J1 * epsilon + J2 * epsilon ** 2
+            self.power_required = 0.5 * power_coefficient * self.freestream_density * self.freestream_velocity ** 3 * np.pi * (self.propeller_diameter/2) ** 2
+            
+        else:
+            thrust_coefficient = I1 * epsilon - I2 * epsilon ** 2
+            self.propeller_thrust = 0.5 * thrust_coefficient * self.freestream_density * self.freestream_velocity ** 2 * np.pi * (self.propeller_diameter/2) ** 2
 
+        CT = self.propeller_thrust / (self.freestream_density * (self.RPM / 60)**2 * self.propeller_diameter ** 4)
+        CP = self.power_required / (self.freestream_density * (self.RPM / 60)**3 * self.propeller_diameter ** 5)
+
+        self.advance_ratio = lamda * np.pi
         self.propeller_efficiency = self.advance_ratio * CT / CP  
 
-        return self.power_required
+        return 
         
-    
-    def compute_maximum_tip_speed(self):
-
-        self.maximum_tip_speed = self.maximum_blade_mach * self.speed_of_sound
-        return self.maximum_tip_speed
-    
-
-    def compute_maximum_RPM(self):
         
+
+    def compute_maximum_RPM(self, use_maximum_RPM=True):
+        
+        self.maximum_tip_speed = self.maximum_blade_mach * np.sqrt(self.speed_of_sound ** 2 + self.freestream_velocity ** 2)
         self.maximum_RPM = 60 * self.maximum_tip_speed / np.pi / self.propeller_diameter
-        return self.maximum_RPM
+
+        if use_maximum_RPM:
+            self.RPM = self.maximum_RPM
+
+        return 
     
+
