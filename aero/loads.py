@@ -74,7 +74,7 @@ axes[1, 1].set_ylabel("Drag [N]")
 axes[1, 1].legend()
 
 plt.tight_layout()
-#plt.show()
+plt.show()
 
 total_lift_gull = np.trapz(lift_gull_max, x)
 total_lift_vd_gull = np.trapz(lift_vd_gull_max, x)
@@ -96,3 +96,12 @@ total_values_straight = np.array([["total_lift_straight", total_lift_straight],
                         ["total_drag_straight", total_drag_straight],
                         ["total_drag_vd_straight", total_drag_vd_straight]])
 
+LD_gull = total_lift_gull/total_drag_gull
+LD_vd_gull = total_lift_vd_gull/total_drag_vd_gull
+LD_straight = total_lift_straight/total_drag_straight
+LD_vd_straight = total_lift_vd_straight/total_drag_vd_straight
+
+LD_values = np.array([["LD_gull", LD_gull],
+                        ["LD_straight", LD_straight],
+                        ["LD_vd_gull", LD_vd_gull],
+                        ["LD_vd_straight", LD_vd_straight]])
