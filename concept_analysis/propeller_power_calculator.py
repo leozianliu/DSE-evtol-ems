@@ -49,7 +49,7 @@ class Propeller:
         omega = 0.10472 * self.RPM
 
         converged = False
-        max_iterations = 100000
+        max_iterations = 10000
         epsilon_tol = 1e-6
 
         r = np.linspace(r_hub, self.propeller_diameter/2, N)
@@ -67,6 +67,7 @@ class Propeller:
         else: 
             
             power_coefficient = 2 * self.shaft_power / (self.freestream_density * self.freestream_velocity ** 3 * np.pi * (self.propeller_diameter/2) ** 2)
+        
         # Estimate power required from thust
         while not converged and max_iterations:
 
@@ -138,7 +139,7 @@ class Propeller:
 
     def compute_maximum_RPM(self, use_maximum_RPM=True):
         
-        self.maximum_tip_speed = self.maximum_blade_mach * np.sqrt(self.speed_of_sound ** 2 + self.freestream_velocity ** 2)
+        self.maximum_tip_speed = self.maximum_blade_mach * np.sqrt(self.speed_of_sound ** 2 - self.freestream_velocity ** 2)
         self.maximum_RPM = 60 * self.maximum_tip_speed / np.pi / self.propeller_diameter
 
         if use_maximum_RPM:
