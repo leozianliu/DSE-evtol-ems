@@ -8,17 +8,25 @@ beta = (1-0.15**2)**0.5     # Prandtl-Glauert correction
 kappa = (1.43737/(12.21/180*np.pi))/(2*np.pi)          # Ratio of two-dimensional lift curve slope to 2pi #############This is the input !
 C_D_0 = 0.007
 AOA_Critical = 17.7  # In degrees
+
 #############################################################
 
-
-AOA = (np.arange(-AOA_Critical,AOA_Critical,0.1))/180*np.pi  # In radian
+AOA_crit_rad = AOA_Critical/180*np.pi
+AOA_max_rad = np.radians(90)
+AOA = (np.arange(-10,90,0.1))/180*np.pi  # In radian
 
 C_L_alpha = 2*np.pi*A_R / (2+np.sqrt((A_R*beta/kappa)**2+4))
-C_L = C_L_alpha * AOA
+C_L_linear = C_L_alpha * AOA
+
+C_L_max = C_L_alpha * AOA_crit_rad
+C_L_parabolic = C_L_max * (1 - ((AOA - AOA_crit_rad) / (AOA_max_rad - AOA_crit_rad))**2)
+
+C_L = np.where(AOA <= AOA_crit_rad, C_L_linear, C_L_parabolic)
+C_L = np.where(AOA >= AOA_max_rad, 0.0, C_L)  # enforce zero at 90°
 
 e = 1.78*(1-0.045*A_R**0.68)-0.64  # Oswald factor
 
-C_D = 0.007 + C_L**2/(np.pi*A_R*e)
+C_D = 0.007 + C_L_linear**2/(np.pi*A_R*e)
 L_D = C_L/C_D
 
 plt.figure(figsize=(15, 4))
