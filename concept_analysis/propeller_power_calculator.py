@@ -26,7 +26,6 @@ class Propeller:
             self.assumed_ducted_efficiency_increase += 0.15
 
         # These will be computed
-        self.downstream_velocity = None
 
         self.propeller_efficiency = None
         self.maximum_RPM = None
@@ -34,14 +33,21 @@ class Propeller:
         self.advance_ratio = None
         self.Reynolds_number = None
         
+        
     def compute_power_required(self, true_if_compute_power_false_if_compute_thrust=True):
+
+        # === Assumptions: ===
+        # RPMs higher than 1000
+        # No tip losses
+        # Addition of duct increases efficiency by exactly 15%
+        # Error is around +- 10 % 
 
         # === Step 1: Initialize ===
 
         N = 100 # Number of panels
         epsilon = 0 # initial guess
         Cl = 0.7 # Assumed performance metrics of the airfoil
-        Cd = 0.07
+        Cd = 0.035
         s = Cd/Cl
     
         r_hub = self.hub_ratio * self.propeller_diameter/2
@@ -82,6 +88,7 @@ class Propeller:
             
             a = (epsilon/2) * np.cos(phi)**2 * (1 - s * np.tan(phi))
             W = self.freestream_velocity * (1 + a) / np.sin(phi)
+            a_prime = 0.5 * epsilon * np.cos(phi) * np.sin(phi) * (1 + s / np.tan(phi)) / x
 
             chord = Wc / W
             alpha = np.radians(5)  # Assume 5 deg fixed angle of attack of blades
@@ -127,15 +134,21 @@ class Propeller:
         self.chord_distribution = chord
         self.twist_distribution = np.rad2deg(beta)
 
-        CT = self.propeller_thrust / (self.freestream_density * (self.RPM / 60)**2 * self.propeller_diameter ** 4)
-        CP = self.shaft_power / (self.freestream_density * (self.RPM / 60)**3 * self.propeller_diameter ** 5)
+
+        self.dL = self.freestream_density * W * ( 2 * np.pi * (self.freestream_velocity**2) * epsilon * G / omega) * (self.propeller_diameter/2)/self.number_blades
+        self.dT = self.dL * np.cos(phi) * (1 - s * np.tan(phi)) 
+        self.dQ = 2 * np.pi * xi * (self.propeller_diameter/2) * self.freestream_density * self.freestream_velocity * (1+a) * (2 * omega * xi * (self.propeller_diameter/2) * a_prime * F) * (self.propeller_diameter/2)/self.number_blades
+
+
+        self.propeller_efficiency = thrust_coefficient / power_coefficient
 
         self.advance_ratio = lamda * np.pi
-        self.propeller_efficiency = self.advance_ratio * CT / CP  
         self.power_loading = self.propeller_thrust / self.shaft_power
         self.disk_loading = self.propeller_thrust / self.propeller_area
 
         return              
+
+
 
     def compute_maximum_RPM(self, use_maximum_RPM=True):
         
