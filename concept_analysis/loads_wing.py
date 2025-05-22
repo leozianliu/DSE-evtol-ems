@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import aeroloads as aero
+from scipy.interpolate import interp1d
 
 def calculate_thrust_loads(engine_positions_y, engine_offsets_z, engine_thrusts, half_span, num_points=100):
     """
@@ -50,7 +52,7 @@ def calculate_thrust_loads(engine_positions_y, engine_offsets_z, engine_thrusts,
 
     return shear_force_T, torque_T, moment_T
 
-def calculate_weight_loads(engine_positions_y, engine_offsets_z, engine_weights, half_span, flight_mode, num_points=100):
+def calculate_engine_weight_loads(engine_positions_y, engine_offsets_z, engine_weights, half_span, flight_mode, num_points=100):
     """
     Calculates shear force, torque, and bending moment due to engine weight in either horizontal or vertical wing orientation.
 
@@ -89,9 +91,31 @@ def calculate_weight_loads(engine_positions_y, engine_offsets_z, engine_weights,
 
     return shear_force_W, torque_W, moment_W
 
+def aeroloads_func(flight_mode, half_span, num_points = 100):
+    y_points = np.linspace(0, half_span, num_points)
+    moment_lift = np.zeros(len(y_points))
+
+    if flight_mode == 'horizontal':
+        y_interp = np.linspace(0, half_span, num_points)
+        y = np.linspace(1.05, half_span, len(aero.lift_gull_rh))
+
+        lift_gull_interp_func = interp1d(y, aero.lift_gull_rh, bounds_error=False, fill_value=0.0)
+
+        lift_gull_rh = lift_gull_interp_func(y_interp)
+        value_at_1_05 = lift_gull_interp_func(1.05)
+        lift_gull_rh[y_interp < 1.05] = value_at_1_05
+
+        dy = y_points[1] - y_points[0]
+        for i in range(len(moment_lift) - 2, -1, -1):
+            moment_lift[i] = moment_lift[i + 1] + lift_gull_rh[i + 1] * dy 
+    else:
+        lift_gull_rh = [0.0] * 100
+    
+    return lift_gull_rh, moment_lift
+
 
 if __name__ == "__main__":
-    flight_mode = 'vertical'  # Change to 'vertical' for vertical flight
+    flight_mode = 'horizontal'  # Change to 'vertical' for vertical flight
     # Inputs
     engine_positions_y = [2.41, 4.8]  # y-locations from fuselage center (m)
     engine_offsets_z = [-0.5, 1]  # z-offsets (m) from wing centerline, downward is positive
@@ -100,11 +124,11 @@ if __name__ == "__main__":
     half_span = 6.0  # m
 
     shear_force_T, torque_T, moment_T = calculate_thrust_loads(engine_positions_y, engine_offsets_z, engine_thrusts, half_span)
-    shear_force_W, torque_W, moment_W = calculate_weight_loads(engine_positions_y, engine_offsets_z, engine_weights, half_span, flight_mode)
+    shear_force_W, torque_W, moment_W = calculate_engine_weight_loads(engine_positions_y, engine_offsets_z, engine_weights, half_span, flight_mode)
 
-    shear_force = shear_force_W + shear_force_T
+    shear_force = shear_force_W + shear_force_T + aeroloads_func(flight_mode, half_span)[0]
     torque = torque_W + torque_T
-    moment = moment_W + moment_T
+    moment = moment_W + moment_T + aeroloads_func(flight_mode, half_span)[1]
 
     axis_label_shear = 'Z' if flight_mode == 'horizontal' else 'X'
     axis_label_torque = 'Y' if flight_mode == 'horizontal' else 'Y'
