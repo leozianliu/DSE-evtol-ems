@@ -28,10 +28,10 @@ eff = []
 ct = []
 cp = []
 print(t1)
-prop = Propeller(1, 785, 50, 1, 4500, 5)
+prop = Propeller(1, 785,4, 50, 1, 4500, 2)
 #prop.compute_maximum_RPM(use_maximum_RPM=True)
 prop.high_loading_design()
-prop.summary_parameters(plot_chord_twist_distributions=False)
+prop.summary_parameters(plot_chord_twist_distributions=True)
 plt.plot(prop.total_circulation)
 plt.show()
 

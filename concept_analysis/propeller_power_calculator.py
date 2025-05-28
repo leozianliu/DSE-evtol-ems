@@ -172,9 +172,8 @@ class Propeller:
 
     def compute_maximum_RPM(self, use_maximum_RPM=False):
         
-        self.maximum_tip_speed = self.maximum_blade_mach * np.sqrt(self.speed_of_sound ** 2 - self.velocity ** 2)
+        self.maximum_tip_speed = self.maximum_blade_mach * self.speed_of_sound 
         self.maximum_RPM = 60 * self.maximum_tip_speed / np.pi / self.diameter
-
 
         if use_maximum_RPM:
             self.RPM = self.maximum_RPM
@@ -267,7 +266,7 @@ class Propeller:
         # Constants
         J = self.velocity / 2 / np.pi / (self.RPM / 60) / (self.diameter/2)
         f = self.number_blades / 2 * ((self.diameter/2 - self.r) / (self.diameter/2)) * (np.sqrt(1 + J ** 2) / J)
-        F = 2 / np.pi * np.arccos(np.exp(-f))
+        F = 2 / np.pi * (np.arccos(np.exp(-f)))
         assumed_cl = 1.5
 
         # Pre-compute constant multiplier
@@ -276,7 +275,7 @@ class Propeller:
         def compute_thrust(vline):
             circulation = (
                 circulation_distribution(self.velocity, vline, self.RPM, self.number_blades, self.r) +
-                circulation_distribution(self.velocity, vline, self.RPM, self.number_blades, (self.diameter / 2) ** 2 / self.r) +
+                circulation_distribution(self.velocity, vline, self.RPM, self.number_blades, (self.hub_ratio * self.diameter / 2) ** 2 / self.r) -
                 circulation_distribution(self.velocity, vline, self.RPM, self.number_blades, self.hub_ratio * self.diameter / 2 * np.ones_like(self.r)) 
             ) * F
 
@@ -289,18 +288,18 @@ class Propeller:
             return compute_thrust(vline) - self.thrust
 
         # Solve for vline that makes thrust match desired value
-        solution = root_scalar(residual, bracket=[0.01, 100], method='brentq')  # adjust bracket as needed
+        solution = root_scalar(residual, bracket=[0.01, 200], method='brentq')  # adjust bracket as needed
 
         if not solution.converged:
             print("Failed to converge to a vline value.")
-
+        print(solution.root)
         vline = solution.root
 
         # Recalculate final circulation with solved vline
         total_circulation = (
             circulation_distribution(self.velocity, vline, self.RPM, self.number_blades, self.r) +
-            circulation_distribution(self.velocity, vline, self.RPM, self.number_blades, (self.diameter / 2) ** 2 / self.r) + 
-            circulation_distribution(self.velocity, vline, self.RPM, self.number_blades, self.hub_ratio * self.diameter / 2 * np.ones_like(self.r)) 
+            circulation_distribution(self.velocity, vline, self.RPM, self.number_blades, (self.hub_ratio * self.diameter / 2) ** 2 / self.r) - 
+            circulation_distribution(self.velocity, vline, self.RPM, self.number_blades, self.hub_ratio * self.diameter / 2) 
         ) * F
 
         # Store results
@@ -308,7 +307,7 @@ class Propeller:
         self.total_circulation = total_circulation
         
         # interpolate away from blade tip and extrapolate up to blade tip
-        circulation_function = interp1d(self.r, total_circulation, kind='cubic', fill_value='extrapolate')
+        circulation_function = interp1d(self.r[:800], total_circulation[:800], kind='cubic', fill_value='extrapolate')
         total_circulation = np.array([circulation_function(R) for R in self.r])
 
         # Find W
