@@ -16,6 +16,7 @@ AOA_max_rad = np.radians(90)
 AOA = (np.arange(-10,90,0.1))/180*np.pi  # In radian
 
 C_L_alpha = 2*np.pi*A_R / (2+np.sqrt((A_R*beta/kappa)**2+4))
+print(C_L_alpha)
 C_L_linear = C_L_alpha * AOA
 
 C_L_max = C_L_alpha * AOA_crit_rad
