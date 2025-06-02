@@ -4,10 +4,6 @@ import pandas as pd
 from scipy.interpolate import interp1d
 from scipy.optimize import root_scalar
 
-from xfoil.xfoil import XFoil
-from xfoil.test import *
-
-
 _polar_df = pd.read_csv("concept_analysis/polar.txt", sep=r'\s+', skiprows=2,
                          names=["AOA","cl","cd","cm"])
 cl_interp = interp1d(_polar_df.AOA, _polar_df.cl, kind='cubic', fill_value="extrapolate")
@@ -24,7 +20,7 @@ def get_aero_coefficients(alpha):
 
 
 class Propeller:
-    def __init__(self, shaft_power, thrust, velocity, diameter, RPM, number_blades, density=1.225, temperature=293.15, ducted_fan=False):
+    def __init__(self, thrust, velocity, diameter, RPM, number_blades, density=1.225, temperature=293.15, ducted_fan=False):
         
         ### Inputs, all are floats
 
@@ -42,14 +38,14 @@ class Propeller:
         self.number_blades = number_blades # Number of blades of the propeller
         self.thrust = thrust # Thrust required
         self.rpm = RPM # Rotations per minute of propeller blades
-        self.omega = 2 * np.pi * self.RPM / 60 # Same but converted to radians per second
-        self.advance_ratio = self.velocity / (self.rpm / 60) / self.diameter
+        self.omega = 2 * np.pi * self.rpm / 60 # Same but converted to radians per second
 
         ### Ambient:
 
         self.velocity = velocity # velocity in m/s
         self.density = density # ambient density in kg/m^3
         self.temperature = temperature # ambient temperature in Kelvin
+        self.advance_ratio = self.velocity / (self.rpm / 60) / self.diameter
 
         ### Constants:
         self.gamma = 1.4 # ratio of specific heats of air (Cp/Cv)
@@ -200,8 +196,8 @@ class Propeller:
         self.dT = self.number_blades * self.density * total_circulation * (self.omega * self.r - v_tang)
         self.dQ = self.number_blades * self.density * total_circulation * self.r * v_axial
 
-        self.error_percentage = self.thrust / (np.trapz(self.dT, self.r))
-        self.shaft_power = np.trapz(self.dQ, self.r) * self.omega
+        self.error_percentage = 100 - self.thrust / (np.trapz(self.dT, self.r)) * 100
+        self.shaft_power = np.trapz(self.dQ, self.r) * self.omega / self.number_blades
         
         return
     
@@ -213,12 +209,15 @@ class Propeller:
         print(f"Freestream velocity: {self.velocity} [m/s]")
         print(f"Propeller diameter: {self.diameter} [m]")
         print(f"Propeller area: {np.round(self.propeller_area, 2)} [m^2]")
-        print(f"Rotational speed: {np.round(self.RPM, 2)} [RPM], or {np.round(self.RPM * 0.10472, 2)} [rad/s]")
+        print(f"Rotational speed: {np.round(self.rpm, 2)} [RPM], or {np.round(self.rpm * 2 * np.pi/60, 2)} [rad/s]")
         print(f"Propeller thrust: {np.round(self.thrust, 2)} [N]")
         print(f"Propeller power input: {np.round(self.shaft_power/1000, 2)} [kW]")
         print(f"Number of blades: {self.number_blades}")
         print(f"Propeller advance ratio: {np.round(self.advance_ratio, 5)}")
-        print(f"Propeller efficiency: {np.round(self.efficiency*100, 2)}%")
+        print(f"Error Percentage: {np.round(100 - self.thrust / (np.trapz(self.dT, self.r)) * 100, 2)}%")
+
+        if self.efficiency:
+            print(f"Propeller efficiency: {np.round(self.efficiency*100, 2)}%")
 
         
         print()  # Extra space for readability
@@ -227,7 +226,7 @@ class Propeller:
                 fig, axs = plt.subplots(1, 2, figsize=(12, 5))
 
                 # Plot Chord
-                axs[0].plot(self.r / (self.diameter/2), self.chord_distribution*1000/ (self.diameter/2), color='red')
+                axs[0].plot(self.r / self.rtip, self.chord, color='red')
                 axs[0].set_title('Chord Distribution')
                 axs[0].set_xlabel('Position along blade radius')
                 axs[0].set_ylabel('Chord lenght [mm]')
@@ -236,7 +235,7 @@ class Propeller:
 
 
                 # Plot Twist
-                axs[1].plot(self.r / (self.diameter/2), self.twist_distribution, color='red')
+                axs[1].plot(self.r / self.rtip, self.twist, color='red')
                 axs[1].set_title('Twist Distribution')
                 axs[1].set_xlabel('Position along blade radius')
                 axs[1].set_ylabel('Twist angle [deg]')
