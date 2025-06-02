@@ -17,7 +17,7 @@ drag_vd_straight = straight_wing.iloc[:,3]
 
 
 array_size = lift_gull.size
-b = 9.66
+b = 12
 x = np.linspace(-b/2, b/2, array_size)
 
 n_max = 2.5 
@@ -43,7 +43,7 @@ axes[0, 0].plot(x, lift_vd_gull_max, label='Lift Gull Wing [Vd]')
 axes[0, 0].axvline(0, color='black', linestyle='--')
 axes[0, 0].set_title("Lift Gull Wing")
 axes[0, 0].set_xlabel("x [m]")
-axes[0, 0].set_ylabel("Lift [N]")
+axes[0, 0].set_ylabel("Lift/x [N]")
 axes[0, 0].legend()
 
 # Top-right
@@ -52,7 +52,7 @@ axes[0, 1].plot(x, lift_vd_straight_max, label='Lift Straight Wing [Vd]')
 axes[0, 1].axvline(0, color='black', linestyle='--')
 axes[0, 1].set_title("Lift Straight Wing")
 axes[0, 1].set_xlabel("x [m]")
-axes[0, 1].set_ylabel("Lift [N]")
+axes[0, 1].set_ylabel("Lift/x [N]")
 axes[0, 1].legend()
 
 # Bottom-left
@@ -61,7 +61,7 @@ axes[1, 0].plot(x, drag_vd_gull_max, label='Drag Gull Wing [Vd]')
 axes[1, 0].axvline(0, color='black', linestyle='--')
 axes[1, 0].set_title("Drag Gull Wing")
 axes[1, 0].set_xlabel("x [m]")
-axes[1, 0].set_ylabel("Drag [N]")
+axes[1, 0].set_ylabel("Drag/x [N]")
 axes[1, 0].legend()
 
 # Bottom-right
@@ -70,7 +70,7 @@ axes[1, 1].plot(x, drag_vd_straight_max, label='Drag Straight Wing [Vd]')
 axes[1, 1].axvline(0, color='black', linestyle='--')
 axes[1, 1].set_title("Drag Straight Wing")
 axes[1, 1].set_xlabel("x [m]")
-axes[1, 1].set_ylabel("Drag [N]")
+axes[1, 1].set_ylabel("Drag/x [N]")
 axes[1, 1].legend()
 
 plt.tight_layout()
