@@ -1,6 +1,7 @@
 import numpy as np
 from engine import *
 from matplotlib import pyplot as plt
+from scipy.optimize import curve_fit
 
 #Mission parameters:
 m_payload = 400 #kg
@@ -150,22 +151,6 @@ for idx in range(len(density_batt_arr)):
     mtom_arr = np.append(mtom_arr, mtow / g)
 
 
-# print("---------------------------------")
-# print("Rotor diameter: ", D_rotor, "m")
-# print('Single motor power takeoff: ', P_hover_single, "kW")
-# # print("Power mass:", m_powersource, "kg")
-# print("P_hover: ", P_hover / 1000, "kW")
-# print("P_cruise: ", P_cruise / 1000, "kW")
-# print("E_hover: ", E_hover / 3600 / 1000, "kWh")
-# print("E_cruise: ", E_cruise / 3600 / 1000, "kWh")
-# print("E_total: ", E_total / 3600 / 1000, "kWh")
-# print("Number of iterations: ", n)
-# print("Final MTOW: ", mtow / g, "kg")
-# print("Final Propulsion mass: ", m_propulsion, "kg")
-# print("Final Power Source mass: ", m_powersource, "kg")
-# print("Final EOM mass ratio: ", m_eom*g/mtow*100, "%")
-#print(P_hover/1000)
-
 print("---------------------------------")
 print(E_total_arr / 3600 / 1000, "kWh")
 print(density_batt_whkg_arr, "Wh/kg")
@@ -186,3 +171,23 @@ plt.tight_layout()
 
 plt.grid()
 plt.show()
+
+def exp_func(x, a, b, c, d):
+    return a * np.exp(-b * x) + c * x + d
+
+norm_density_batt_whkg_arr = density_batt_whkg_arr - 400
+popt = curve_fit(exp_func, norm_density_batt_whkg_arr, E_total_arr, p0=[1e7, 0, 0, 1e8])
+
+print("Exponential fit parameters: ", popt[0])
+
+fit_E_total_arr = exp_func(norm_density_batt_whkg_arr, *popt[0])
+plt.figure(figsize=(10, 6))
+plt.plot(density_batt_whkg_arr, E_total_arr / 3600 / 1000, color='blue', marker='o', label='Data')
+plt.plot(density_batt_whkg_arr, fit_E_total_arr / 3600 / 1000, color='red', label='Exponential Fit')
+plt.xlabel('Battery energy density (Wh/kg)')
+plt.ylabel('Capacity required (kWh)')
+plt.title('Exponential Fit of Battery Energy Density vs Required Capacity')
+plt.legend()
+plt.grid()
+plt.show()
+
