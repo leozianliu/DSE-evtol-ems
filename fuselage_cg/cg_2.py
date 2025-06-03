@@ -1,14 +1,15 @@
 import numpy as np 
 import matplotlib.pyplot as plt
+from whole_cg import Xcgfg
 
 #weights [kg]
 w_person = 80
-
 w_stretcher = 57
 
 #preliminary
 w_fuselage = 1100 
-x_cg_struc = 2666
+#x_cg_struc = xcgfg_actual * 1000
+x_cg_struc = Xcgfg * 1000
 
 
 def cg_f(pt_x, d1_x, d2_x, pi_x, w_pat):
