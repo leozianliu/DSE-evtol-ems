@@ -25,7 +25,7 @@ C_ds_nose = 1 # [-]
 #############################################
 
 C_d_main = (d_main*w_main)/S*(C_ds_main)
-C_d_nose = (d_nose*w_nose)/S*(C_ds_nose)
+C_d_nose = (d_nose*w_nose)/S*(C_ds_nose)/2
 
 total_dd_ut = C_d_main + C_d_nose
 
@@ -44,4 +44,15 @@ else:
     print('Drag coefficient for retractable:', total_dd_t)
     print('Drag coefficient for unretractable:', total_dd_ut)
 
+#################### From this part, the size and C_ds are assumed to be the same for both nose wheel and main wheels. ######
+
+
+d_comb = d_main
+w_comb = w_main
+C_ds_comb = np.linspace(0,1,100)
+# print(C_ds_comb)
+
+C_d_combined = (d_comb*w_comb)/S*(C_ds_comb)*1.5
+plt.plot(C_ds_comb,C_d_combined)
+plt.show()
 
