@@ -2,18 +2,19 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
+import aeroloads as aero
 
 class LoadsCalculator:
     def __init__(self, flight_mode, num_points):
-        self.engine_positions_y = np.array([2.367, 4.884])  # [2.41, 4.884] y-locations from along wingbox (m) 4.884
+        self.engine_positions_y = np.array([1.95, 4.884])  # [2.41, 4.884] y-locations from along wingbox (m) 4.884
         self.engine_offsets_x = np.array([1, 1])    # x-offsets from wingbox(m)
-        self.engine_thrusts = np.array([8000.0, 4000.0])  # [8000.0, 4000.0] N
+        self.engine_thrusts = np.array([7000.0, 4000.0])  #  N cruise: [2800, 1400]   vertical: [7000.0, 4000.0] 
         self.engine_weights = np.array([50, 60]) * 9.81   # [50, 60] N
         self.half_span = 6.126                             # m  6.126    
         self.num_points = num_points
         self.flight_mode = flight_mode
         self.y_points = np.linspace(0, self.half_span, self.num_points)
-        self.gull_location = 2.5                        # m 
+        self.gull_location = 1.95                        # m 
         self.gull_angle = np.radians(-14.9)                            # degrees
         self.engine_offsets_z = np.array([-0.5, 1.0])    # z-offsets (m)
 
@@ -34,15 +35,15 @@ class LoadsCalculator:
         torque_t[self.y_points <= self.engine_positions_y[0]] += self.engine_thrusts[0] * -self.engine_offsets_z[0]
 
         # Assume the kink starts at index `kink_index`
-        dy_before_kink = self.y_points[1] - self.y_points[0]  # Before kink
+        dy_before_kink = self.y_points[1] - self.y_points[0]            # Before kink
         dy_after_kink = dy_before_kink * np.cos(self.gull_angle)        # Adjusted dy after kink
 
         dy_array = np.where(
-            np.arange(len(self.y_points)-1) < idx_kink,
+            np.arange(len(self.y_points) - 1) < idx_kink,
             dy_before_kink,
             dy_after_kink
         )
-        moment_t[:-1] = np.flip(np.cumsum(np.flip(shear_t[1:] * dy_array)))
+        moment_t[:-1] = np.flip(np.cumsum(np.flip(shear_t[:-1] * dy_array)))
 
         moment_t[self.y_points <= self.gull_location] += moment_due_torque_t
 
@@ -58,24 +59,34 @@ class LoadsCalculator:
         moment_we = np.zeros(self.num_points)
         normal_we = np.zeros(self.num_points)
 
+        idx_kink = np.argmin(np.abs(self.y_points - self.gull_location))
+        dy_before_kink = self.y_points[1] - self.y_points[0]            # Before kink
+        dy_after_kink = dy_before_kink * np.cos(self.gull_angle)        # Adjusted dy after kink
+
+        dy_array = np.where(
+            np.arange(len(self.y_points) - 1) < idx_kink,
+            dy_before_kink,
+            dy_after_kink
+        )
+
         for pos, offset_z, offset_x, weight in zip(self.engine_positions_y, self.engine_offsets_z, self.engine_offsets_x, self.engine_weights):
             mask = self.y_points <= pos        
             if self.flight_mode == 'horizontal':
                 torque_we[mask] += -weight * offset_x
                 shear_we[mask] += -weight
-            
+
+                # Rotating shear to reference frame after kink
+                shear_we[self.y_points > self.gull_location] *= np.cos(self.gull_angle)
+                normal_we[self.y_points > self.gull_location] += shear_we[self.y_points > self.gull_location] * math.tan(self.gull_angle)  
+                moment_we[:-1] = np.flip(np.cumsum(np.flip(shear_we[1:] * dy_array))) * -1
+
             else:
                 torque_we[mask] += -weight * offset_z
                 shear_we[mask] += weight
-                dy = self.y_points[1] - self.y_points[0]
-                moment_we[:-1] = np.flip(np.cumsum(np.flip(shear_we[1:] * dy)))    
-
-        # Rotating shear to reference frame after kink
-        shear_we[self.y_points > self.gull_location] *= np.cos(self.gull_angle)
-        normal_we[self.y_points > self.gull_location] += shear_we[self.y_points > self.gull_location] * math.tan(self.gull_angle)  
-                
-        dy = self.y_points[1] - self.y_points[0]
-        moment_we[:-1] = np.flip(np.cumsum(np.flip(shear_we[1:] * dy))) * -1
+                moment_we[:-1] = np.flip(np.cumsum(np.flip(shear_we[:-1] * dy_array)))    
+        
+        if self.flight_mode == 'vertical':
+            torque_we[self.y_points < self.gull_location] += self.engine_weights[1] * (self.engine_positions_y[1] - self.gull_location) * math.sin(self.gull_angle) 
 
         self.shear_we = shear_we      
         self.torque_we = torque_we    
@@ -90,8 +101,6 @@ class LoadsCalculator:
         shear_drag = np.zeros(self.num_points)
         moment_drag = np.zeros(self.num_points) 
         normal_lift = np.zeros(self.num_points)
-       # normal_lift = np.zeros(self.num_points) 
-       # hor_lift = np.zeros(self.num_points)
 
         y = np.linspace(1.05, self.half_span, len(lift))
 
@@ -102,8 +111,8 @@ class LoadsCalculator:
 
         #lift_value_at_105 = lift_interp_func(1.05)
         #drag_value_at_105 = drag_interp_func(1.05)
-        lift[self.y_points < 1.05] = 0 #lift_value_at_105
-        drag[self.y_points < 1.05] = 0 #drag_value_at_105
+        lift[self.y_points <= 0.9] = 0 #lift_value_at_105
+        drag[self.y_points <= 0.9] = 0 #drag_value_at_105
 
         dy = self.y_points[1] - self.y_points[0]
         shear_lift[:-1] = np.flip(np.cumsum(np.flip(lift[1:] * dy))) 
@@ -131,31 +140,38 @@ class LoadsCalculator:
         dy = self.y_points[1] - self.y_points[0]
         if self.flight_mode == 'horizontal':
             shear_x = self.shear_t * -1 # Neglected: + self.shear_drag  
-            shear_z = (self.shear_lift + self.shear_we) * -1
+            shear_z = (self.shear_lift + self.shear_we) * -1 
             moment_z = self.moment_t  # Neglected: + self.moment_drag
             moment_x = (self.moment_we + self.moment_lift) * -1
             torque = -self.torque_t + self.torque_we
-            normal = - self.normal_lift + self.normal_we #Which directions??
+            normal = - self.normal_lift + self.normal_we
         
         else:
-            shear_x = self.shear_t #+ self.shear_we
-            shear_z = np.zeros(100)
-            moment_z = self.moment_t #+ self.moment_we
-            moment_x = np.zeros(100)
-            torque = self.torque_t #+ self.torque_we
+            shear_x = (self.shear_t + self.shear_we) * -1 
+            shear_z = np.zeros(self.num_points)
+            moment_z = self.moment_we + self.moment_t 
+            moment_x = np.zeros(self.num_points)
+            torque =  self.torque_we - self.torque_t
+            normal = np.zeros(self.num_points) 
 
         return shear_x, shear_z, moment_x, moment_z, torque, normal
     
+calculator = LoadsCalculator('vertical', 300)
+calculator.thrust_loads()
+calculator.engine_weight_loads()
+shear_lift, shear_drag, moment_lift, moment_drag, normal_lift = calculator.aerodynamic_loads(lift= aero.lift_gull_rh, drag= 2.5 * aero.drag_gull_rh)
+
+shear_x, shear_z, moment_x, moment_z, torque, normal = calculator.combined_loads()
+
 if __name__ == "__main__":
-    import aeroloads as aero
     import matplotlib.pyplot as plt 
 
-    calculator = LoadsCalculator('horizontal', 300)
-    calculator.thrust_loads()
-    calculator.engine_weight_loads()
-    shear_lift, shear_drag, moment_lift, moment_drag, normal_lift = calculator.aerodynamic_loads(lift= aero.lift_gull_rh, drag= aero.drag_gull_rh)
+    # calculator = LoadsCalculator('horizontal', 300)
+    # calculator.thrust_loads()
+    # calculator.engine_weight_loads()
+    # shear_lift, shear_drag, moment_lift, moment_drag, normal_lift = calculator.aerodynamic_loads(lift= aero.lift_gull_rh, drag= aero.drag_gull_rh)
 
-    shear_x, shear_z, moment_x, moment_z, torque, normal = calculator.combined_loads()
+    # shear_x, shear_z, moment_x, moment_z, torque, normal = calculator.combined_loads()
 
     print("Shear X:\n", shear_x)
     print("Shear Z:\n", shear_z)
@@ -206,28 +222,3 @@ if __name__ == "__main__":
 
     plt.tight_layout()
     plt.show()
-
-
-
-            # effect of shear_x on the torque (Multiply by a distance?)
-            # torque_due_shear_x = (np.flip(np.cumsum(np.flip(shear_x[self.y_points > self.gull_location] * dy))) * math.sin(self.gull_angle))
-            # torque[self.y_points <= self.gull_location] += torque_due_shear_x[0]
-
-            # moment_x increase due to additional horizontal component shear z (probably not correct yet)
-            # moment_x_due_shear_z = (np.flip(np.cumsum(np.flip(shear_z[self.y_points > self.gull_location] * math.tan(self.gull_angle * dy)))))
-            # moment_x[self.y_points > self.gull_location] += moment_x_due_shear_z
-            # moment_x[self.y_points <= self.gull_location] += moment_x_due_shear_z[0]
-
-            # rotating shear_z after kink
-            # shear_z[self.y_points > self.gull_location] = shear_z[self.y_points > self.gull_location] / math.cos(self.gull_angle)
-
-            # rotating moment_z
-            # moment_z[self.y_points > self.gull_location] = moment_z[self.y_points > self.gull_location] / math.cos(self.gull_angle)
-
-            # torque component from moment_z
-          #  torque_due_moment_z = np.sum(moment_z[self.y_points > self.gull_location] * math.sin(self.gull_angle)) * dy
-         #   torque[self.y_points < self.gull_location] += torque_due_moment_z
-
-            # normal forces
-            # normal_due_shear_z = shear_z[self.y_points > self.gull_location] * math.sin(self.gull_angle)
-            # normal_y[self.y_points < self.gull_location] += normal_due_shear_z[0]
