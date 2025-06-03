@@ -50,7 +50,7 @@ class Propeller:
         ### Constants:
         self.gamma = 1.4 # ratio of specific heats of air (Cp/Cv)
         self.R_air_constant = 287 # Air constant in J/(kg Kelvin)
-        self.maximum_blade_mach = 0.8 # Maximum Mach number to avoid shockwaves on the blade tips
+        self.maximum_blade_mach = 0.7 # Maximum Mach number to avoid shockwaves on the blade tips
         self.speed_of_sound = np.sqrt(self.gamma * self.temperature * self.R_air_constant) # please tell me you know what the speed of sound is
         
         ### Ducted fan assumption:
@@ -88,9 +88,9 @@ class Propeller:
 
         a = np.ones_like(self.r) * 0.3
         aline = np.ones_like(self.r) * 0.01
-        Niterations = 100
+        Niterations = 1000
         Erroriterations = 1e-7
-        sigma = self.number_blades * (self.chord_distribution + 0.0000001) / (2 * np.pi * self.r)
+        sigma = self.number_blades * (self.chord + 0.0000001) / (2 * np.pi * self.r)
         anew = np.zeros_like(a)
 
         for _ in range(Niterations):
@@ -100,7 +100,7 @@ class Propeller:
             inflowangle = np.arctan(Uaxial / Utan)
             vrel = np.sqrt(Uaxial ** 2 + Utan ** 2)
 
-            alpha = self.twist_distribution - np.degrees(inflowangle)
+            alpha = self.twist - np.degrees(inflowangle)
 
             cl, cd = get_aero_coefficients(alpha) 
             cnormal = cl * np.cos(inflowangle) - cd * np.sin(inflowangle)
@@ -120,13 +120,13 @@ class Propeller:
             a = anew
             aline = alinenew
             
-        self.dL = 0.5 * self.density * vrel ** 2 * self.chord_distribution * cl
-        self.dD = 0.5 * self.density * vrel ** 2 * self.chord_distribution * cd
+        self.dL = 0.5 * self.density * vrel ** 2 * self.chord * cl
+        self.dD = 0.5 * self.density * vrel ** 2 * self.chord * cd
 
         self.dT = self.number_blades * (self.dL * np.cos(inflowangle) - self.dD * np.sin(inflowangle))
         self.dQ = self.r * self.number_blades * (self.dL * np.sin(inflowangle) + self.dD * np.cos(inflowangle))
-        self.thrust = np.sum(self.dT) * self.dr
-        self.shaft_power = np.sum(self.dQ) * self.dr * self.omega
+        self.thrust = np.trapz(self.dT, self.r)
+        self.shaft_power = np.trapz(self.dQ, self.r) * self.omega
 
         self.thrust_coefficient =  self.thrust / (self.density * (self.rpm / 60)**2 * self.diameter ** 4)
         self.power_coefficient = self.shaft_power / (self.density * (self.rpm / 60)**3 * self.diameter ** 5)
@@ -143,8 +143,7 @@ class Propeller:
     
     def design_propeller_geometry(self):
 
-        # I don't know why this works
-        ### assumes optimal circulation along the blade, I don't know what's so optimal about it but sure
+        ### assumes optimal circulation along the blade
 
         def thrust_func(vline): ## Ignore the verbose, the root_scalar functions works in interesting ways
             x1 = 2 * np.pi * (self.rpm/60) * self.r / self.velocity
@@ -178,18 +177,22 @@ class Propeller:
 
         total_circulation = (gamma1 + gamma2 + gamma3) * F / self.number_blades
 
+        circulation_function = interp1d(self.r[:-100], total_circulation[:-100], kind='cubic', fill_value="extrapolate")
+        total_circulation = circulation_function(self.r)
+
         phi = np.arctan((self.velocity + vline) / (self.omega * self.r))
-        
+        alpha = np.array([5]) # degrees
 
         v_tang = total_circulation * self.number_blades / (4 * np.pi * self.r)
         v_rel = np.sqrt((self.velocity + vline) ** 2 + (self.omega * self.r) ** 2) - v_tang / np.cos(phi)
 
-        cl = 1.5
-        cd = cl / 7 # these values I pulled out of my ass because the paper doesn't provide airfoils, 
+        cl, cd = get_aero_coefficients(alpha)
+        
+                    # these values I pulled out of my imagination because the paper doesn't provide airfoils, 
                     # don't change them and don't try to improve them, there are better things to do in life
 
-        self.chord = 1000 * 2 * total_circulation / v_rel / cl # in milimeters for visibility
-        self.twist = 5 + np.degrees(phi)
+        chord = 2 * total_circulation / v_rel / cl # in milimeters for visibility
+        twist = alpha + np.degrees(phi)
 
         v_axial = vline - v_tang * np.tan(phi)
 
@@ -199,6 +202,31 @@ class Propeller:
         self.error_percentage = 100 - self.thrust / (np.trapz(self.dT, self.r)) * 100
         self.shaft_power = np.trapz(self.dQ, self.r) * self.omega / self.number_blades
         
+        return chord, twist
+    
+    def change_flight_regime(self, new_velocity, new_thrust):
+
+        self.velocity = new_velocity
+        self.thrust = new_thrust
+        self.design_propeller_geometry()
+        
+        return
+    
+    def compute_coefficients(self, print_coeff=False):
+
+        self.thrust_coefficient = self.thrust / (self.density * (self.rpm/60) ** 2 * self.diameter ** 4)
+        self.power_coefficient = self.shaft_power / (self.density * (self.rpm/60) ** 3 * self.diameter ** 5)
+        self.efficiency = self.advance_ratio * self.thrust_coefficient / self.power_coefficient
+        if print_coeff:
+            print("\nSummary of coefficients:")
+            print("------------------------------------")
+            
+            print(f"Thrust Coefficient: {np.round(self.thrust_coefficient, 7)}")
+            print(f"Power Coefficient: {np.round(self.power_coefficient, 7)}")
+            print(f"New Efficiency: {np.round(self.efficiency*100, 2)}")
+            print()
+
+
         return
     
     def summary_parameters(self, plot_chord_twist_distributions=False):
@@ -226,7 +254,7 @@ class Propeller:
                 fig, axs = plt.subplots(1, 2, figsize=(12, 5))
 
                 # Plot Chord
-                axs[0].plot(self.r / self.rtip, self.chord, color='red')
+                axs[0].plot(self.r / self.rtip, self.chord * 1000, color='red')
                 axs[0].set_title('Chord Distribution')
                 axs[0].set_xlabel('Position along blade radius')
                 axs[0].set_ylabel('Chord lenght [mm]')
