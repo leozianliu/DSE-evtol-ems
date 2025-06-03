@@ -9,9 +9,9 @@ CTh = 2000  # Thevenin capacitance in F
 eta_loss = 0.78
 
 # Constraints
-MAX_CRATE = 5.0
+MAX_CRATE = 100.0
 MAX_DOD = 0.8
-MAX_TEMP = 50.0  # Celsius
+MAX_TEMP = 30.0  # Celsius
 
 # Air properties
 k_air = 0.026  # W/m.C
@@ -116,11 +116,11 @@ def simulate_mission_profile(profile, Ncells, soc_init=1.0, Tb_init=25):
 # Example usage:
 if __name__ == "__main__":
     mission = [
-        ("Takeoff", 150000, 60),
-        ("Transition", 200000, 30),
-        ("Cruise", 100000, 300),
-        ("Descent", 80000, 60),
-        ("Landing", 120000, 45)
+        ("Takeoff", 850000, 30),
+        ("Transition", 700000, 30),
+        ("Cruise", 100000, 2160),
+        ("Descent", 60000, 30),
+        ("Landing", 800000, 30)
     ]
     Ncells = 16000
     simulate_mission_profile(mission, Ncells)
