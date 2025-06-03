@@ -36,6 +36,12 @@ class Propulsion_powertrain:
         self.propulsion_eff_vtol = self.propeller_eff_vtol * self.motor_eff
         self.propulsion_eff_cruise = self.propeller_eff_cruise * self.motor_eff
 
+        
+        # The following three parameters can be changed base on the chosen battery cell (for now GRP9948164)
+        self.voltage = 800 #V Voltage requriement derived from similar eVTOLs(Joby)
+        self.battery_cell_voltage  = 3.7 #V Voltage from the battery supplier
+        self.battery_cell_capacity = 10 #Ah capacity from the battery supplier
+
 
     def calculate_hover_power(self):
         hover_power_induced = self.factor_k * (self.mto_weight * self.mtow_margin)**1.5 / np.sqrt(2 * rho_air * self.propulsion_eff_vtol)
@@ -70,4 +76,14 @@ class Propulsion_powertrain:
         self.outer_motor_power_max = self.hover_power / (1 + self.thrust_ratio_inner_outer)
         self.inner_motor_esc_mass = self.calculate_single_motor_inverter_mass(self.inner_motor_power_nominal) * (self.motor_number / 2) # 2/4 big motors
         self.outer_motor_esc_mass = self.calculate_single_motor_inverter_mass(self.outer_motor_power_nominal) * (self.motor_number / 2) # 2/4 small motors
+
+
+
+
+    def calculate_battery_configuration(self):
+        self.cell_series = self.voltage / self.battery_cell_voltage
+        self.cell_parallel = self.mission_energy/ (self.voltage * self.battery_cell_capacity)
+        self.cell_total = self.cell_parallel * self.cell_series
         
+
+
