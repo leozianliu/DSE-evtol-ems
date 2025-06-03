@@ -14,18 +14,18 @@ mtow_max = 3175 #kg
 n_max = 2 #G
 cost_miss = 80 #€/h
 cost_init = 2 #M€
-t_landing = 60 #sec
+t_landing = 30 #sec
 t_hover = landings*t_landing #sec
 t_cruise = range * 1000 / v_cruise #sec
 
-LD_ratio = 15 #Lift to drag ratio
+LD_ratio = 14 #Lift to drag ratio
 eff_motor = 0.95 #Efficiency of the motor
 eff_propeller_takeoff = 0.85 #Efficiency of the propeller
 
 # Note: If integrated propulsion is used, N_disks_cruise is not used
-S_disks = 35.5 #m^2 (total disk area based on size requirements, can be changed later)
+S_disks = 24.1 #m^2 (total disk area based on size requirements, can be changed later)
 N_disks_cruise = None #Number of disks (between 2 and 4)
-N_disks_takeoff = 6 #Number of disks (between 4 and 8)
+N_disks_takeoff = 4 #Number of disks (between 4 and 8)
 #D_rotor = 4 #m (max w_hover/2)
 #S_rotor = D_rotor**2 * np.pi / 4 #m^2
 S_rotor = S_disks / N_disks_takeoff #m^2 (disk area per rotor)
@@ -54,6 +54,7 @@ blockage_factor_tiltwing = 0.90 # Free area over total area for propellers in ti
 blockage_factor_tiltrotor = 0.78 # Free area over total area for propellers in tilt-rotor configuration
 blockage_factor_sepprop = 0.86 # Free area over total area for propellers in separate propulsion configuration
 m_tilt_mech = 60 #kg for the tilt-wing mechanism
+figure_of_merit = 0.8 # converting induced to total power for hovering
 
 #Code parameters
 mtow_prev = 0 #N
@@ -107,8 +108,8 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
 
     T = mtow #N
     P_induced = 1.15 * T**(3/2) / np.sqrt(2 * rho_air * S_disks) #W
-    P_profile = 0 # Neglect for now, but can be added later
-    P_hover = (P_induced + P_profile) / eff_motor / eff_propeller_takeoff #W
+    P_hover = P_induced / figure_of_merit
+    P_hover = P_hover / eff_motor / eff_propeller_takeoff #W
     E_hover = P_hover * t_hover #J
 
     E_total = E_cruise + E_hover #J
@@ -126,7 +127,7 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
             P_hover_single = P_hover / N_disks_takeoff / 1000 #KW (energy per disk)
             # print('Single motor power takeoff (kW): ', P_hover_single)
             m_propulsion = calculatePropulsionMass(P_cruise_single, P_hover_single, N_disks_takeoff, D_rotor) #kg (mass of the propulsion system)
-            m_propulsion = m_propulsion + N_disks_takeoff * 15 # mass of motor tilter actuator (10kg per motor)
+            m_propulsion = m_propulsion + N_disks_takeoff * 20 # mass of motor tilter actuator (10kg per motor)
             # print("Propulsion mass: ", m_propulsion, "kg")
             m_eom = m_powersource + m_equipment + m_structure + m_propulsion
             # print("Power mass:", m_powersource, "kg")
