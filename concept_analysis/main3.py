@@ -1,5 +1,6 @@
 import numpy as np
 from engine import *
+from matplotlib import pyplot as plt
 
 #Mission parameters:
 m_payload = 400 #kg
@@ -47,9 +48,8 @@ mtom = 2500 #kg #Maximum takeoff mass (MTOM) of the vehicle (GUESS)
 g = 9.81 #m/s^2
 rho_air = 1.225 #kg/m^3
 #density_batt_whkg = 280 #300Wh/kg (Chinese),
-density_batt_whkg_arr = np.linspace(250, 500, 51) # Wh/kg
+density_batt_whkg_arr = np.linspace(260, 500, 51) # Wh/kg
 density_batt_arr = density_batt_whkg_arr * 3600 #*0.80 #degrade to 80% of the battery capacity
-print(density_batt_arr)
 separate_prop_extra_drag_factor = 1.10 # Skin friction of motor booms increases skin drag by 30% and total drag by 15% (skin drag is 50% of total drag)
 LD_reduction_factor = 1/separate_prop_extra_drag_factor
 blockage_factor_tiltwing = 0.90 # Free area over total area for propellers in tilt-wing configuration
@@ -59,11 +59,8 @@ m_tilt_mech = 60 #kg for the tilt-wing mechanism
 figure_of_merit = 0.8 # converting induced to total power for hovering
 DoD = 0.8 # Depth of discharge
 
-#Code parameters
-mtow_prev = 0 #N
-n = 1
-
 mtow = mtom * g #N (initial guess for MTOW)
+mtom_arr = np.array([]) #kg
 
 if tilt_wing and not integrated_prop:
     print("Warning: Tilt-wing configuration must use integrated propulsion in this program.")
@@ -98,6 +95,9 @@ E_total_arr = np.array([])
 for idx in range(len(density_batt_arr)):
     density_batt = density_batt_arr[idx]
 
+    n = 1
+    mtow_prev = 0
+
     while abs(mtow_prev - mtow) > 0.1 and n < 1000:
         n+=1
         #Energy calculation:
@@ -121,7 +121,6 @@ for idx in range(len(density_batt_arr)):
         E_hover = P_hover * t_hover #J
 
         E_total = E_cruise + E_hover #J
-        E_total_arr = np.append(E_total_arr, E_total)
 
         # Energy source mass as a function of type, energy capacity and output power
         m_powersource = E_total / DoD / density_batt #kg
@@ -147,6 +146,10 @@ for idx in range(len(density_batt_arr)):
         mtow_prev = mtow #N
         mtow = (m_payload + m_powersource + m_eom) * g #N
 
+    E_total_arr = np.append(E_total_arr, E_total)
+    mtom_arr = np.append(mtom_arr, mtow / g)
+
+
 # print("---------------------------------")
 # print("Rotor diameter: ", D_rotor, "m")
 # print('Single motor power takeoff: ', P_hover_single, "kW")
@@ -166,3 +169,20 @@ for idx in range(len(density_batt_arr)):
 print("---------------------------------")
 print(E_total_arr / 3600 / 1000, "kWh")
 print(density_batt_whkg_arr, "Wh/kg")
+print("Final MTOM: ", mtom_arr, "kg")
+
+plt.figure(figsize=(10, 6))
+plt.subplot(121)
+plt.plot(density_batt_whkg_arr, E_total_arr / 3600 / 1000, color='blue', marker='o')
+plt.xlabel('Battery energy density (Wh/kg)')
+plt.ylabel('Capacity required (kWh)')
+plt.title('Relationship between battery energy density and required battery capacity')
+plt.subplot(122)
+plt.plot(E_total_arr, mtom_arr, color='red', marker='o')
+plt.xlabel('Capacity required (kWh)')
+plt.ylabel('MTOM (kg)')
+plt.title('Relationship between required battery capacity and MTOM')
+plt.tight_layout()
+
+plt.grid()
+plt.show()
