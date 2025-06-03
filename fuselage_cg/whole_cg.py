@@ -13,7 +13,7 @@ MAC = 1.5
 Xcglemac = MAC*0.25
 
 
-Xlemac = 2.3 
+Xlemac = 1.8
 Xcgwg = Xlemac + xcg_wg_wrtw
 Xcgfg = Xlemac + xcg_fg_wrtw
 Xlemacs = []
@@ -26,9 +26,6 @@ for i in range(n):
     Xlemac = Xcgfg - Xcglemac + Wwg/Wfg *(Xcgwglemac - Xcglemac)
     Xlemacs.append(Xlemac)
 
-
-plt.plot(Xlemacs)
-#plt.show()
 print(Xlemacs[-1])
 
 xcgfg_actual = Xlemacs[-1] + xcg_fg_wrtw

@@ -6,8 +6,11 @@ from whole_cg import Xcgfg
 w_person = 80
 w_stretcher = 57
 
+wtot = 2200
+
 #preliminary
-w_fuselage = 1100 
+#w_fuselage = wtot * 10/37 
+w_fuselage = 1100
 #x_cg_struc = xcgfg_actual * 1000
 x_cg_struc = Xcgfg * 1000
 
