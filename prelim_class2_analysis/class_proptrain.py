@@ -60,7 +60,7 @@ class Propulsion_powertrain:
         self.battery_mass = self.mission_energy / (self.bat_energy_dens_wh * 3600)
         self.battery_volume = self.mission_energy / (self.bat_volme_dens * 3600)
         self.motor_power_nominal = self.climb_power / self.motor_number
-        self.motor_power_max = self.hover_power / 2
+        self.motor_power_max = self.hover_power / self.motor_number
         self.
 
 
