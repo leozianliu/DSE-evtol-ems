@@ -80,67 +80,7 @@ class Propeller:
             self.advance_ratio = self.velocity / (self.rpm / 60) / self.diameter 
 
         return 
-            
-    def blade_element__momentum_method(self):
-
-        ### this is very innacurate and probably doesn't work, it assumes that induced velocity is perpendicular to 
-        ### total velocity, which only holds somewhere under 200 N/mm^2 disk loading, which is not really doable for eVTOLs
-
-        a = np.ones_like(self.r) * 0.3
-        aline = np.ones_like(self.r) * 0.01
-        Niterations = 1000
-        Erroriterations = 1e-7
-        sigma = self.number_blades * (self.chord + 0.0000001) / (2 * np.pi * self.r)
-        anew = np.zeros_like(a)
-
-        for _ in range(Niterations):
-
-            Uaxial = self.velocity * (1 - a)
-            Utan = (1 + aline) * self.omega * self.r
-            inflowangle = np.arctan(Uaxial / Utan)
-            vrel = np.sqrt(Uaxial ** 2 + Utan ** 2)
-
-            alpha = self.twist - np.degrees(inflowangle)
-
-            cl, cd = get_aero_coefficients(alpha) 
-            cnormal = cl * np.cos(inflowangle) - cd * np.sin(inflowangle)
-            ctang = cl * np.sin(inflowangle) + cd * np.cos(inflowangle)
-
-            f = (self.number_blades / 2) * (self.diameter/2 - self.r) / (self.r * np.sin(inflowangle) + 1e-6)  # add epsilon to avoid div by zero
-            F = (2 / np.pi) * np.arccos(np.exp(-f))
-
-            anew = 1 / (1 + (4 * F * np.sin(inflowangle)**2) / (sigma * cnormal + 1e-6))
-            alinenew = 1 / (1 + (4 * F * np.sin(inflowangle) * np.cos(inflowangle)) / (sigma * ctang + 1e-6))
-
-            if np.mean(np.abs(a - anew)) < Erroriterations \
-            and np.mean(np.abs(aline - alinenew)) < Erroriterations:
-                break
-
-            
-            a = anew
-            aline = alinenew
-            
-        self.dL = 0.5 * self.density * vrel ** 2 * self.chord * cl
-        self.dD = 0.5 * self.density * vrel ** 2 * self.chord * cd
-
-        self.dT = self.number_blades * (self.dL * np.cos(inflowangle) - self.dD * np.sin(inflowangle))
-        self.dQ = self.r * self.number_blades * (self.dL * np.sin(inflowangle) + self.dD * np.cos(inflowangle))
-        self.thrust = np.trapz(self.dT, self.r)
-        self.shaft_power = np.trapz(self.dQ, self.r) * self.omega
-
-        self.thrust_coefficient =  self.thrust / (self.density * (self.rpm / 60)**2 * self.diameter ** 4)
-        self.power_coefficient = self.shaft_power / (self.density * (self.rpm / 60)**3 * self.diameter ** 5)
-
-        self.advance_ratio = self.velocity / (self.rpm / 60) / self.diameter
-        self.efficiency = self.assumed_ducted_efficiency_increase * self.advance_ratio * self.thrust_coefficient / self.power_coefficient
-
-        self.power_loading = self.thrust / self.shaft_power
-        self.disk_loading = self.thrust / self.propeller_area
-        
-        self.figure_of_merit = self.thrust ** 1.5 / (self.shaft_power * np.sqrt(2 * self.density * self.propeller_area))
-
-        return
-    
+                
     def design_propeller_geometry(self):
 
         ### assumes optimal circulation along the blade
@@ -178,10 +118,11 @@ class Propeller:
         total_circulation = (gamma1 + gamma2 + gamma3) * F / self.number_blades
 
         circulation_function = interp1d(self.r[:-100], total_circulation[:-100], kind='cubic', fill_value="extrapolate")
+
         total_circulation = circulation_function(self.r)
 
         phi = np.arctan((self.velocity + vline) / (self.omega * self.r))
-        alpha = np.array([5]) # degrees
+        alpha = np.array([10]) # degrees
 
         v_tang = total_circulation * self.number_blades / (4 * np.pi * self.r)
         v_rel = np.sqrt((self.velocity + vline) ** 2 + (self.omega * self.r) ** 2) - v_tang / np.cos(phi)
@@ -191,8 +132,8 @@ class Propeller:
                     # these values I pulled out of my imagination because the paper doesn't provide airfoils, 
                     # don't change them and don't try to improve them, there are better things to do in life
 
-        chord = 2 * total_circulation / v_rel / cl # in milimeters for visibility
-        twist = alpha + np.degrees(phi)
+        self.chord = 2 * total_circulation / v_rel / cl # in milimeters for visibility
+        self.twist = alpha + np.degrees(phi)
 
         v_axial = vline - v_tang * np.tan(phi)
 
@@ -202,30 +143,35 @@ class Propeller:
         self.error_percentage = 100 - self.thrust / (np.trapz(self.dT, self.r)) * 100
         self.shaft_power = np.trapz(self.dQ, self.r) * self.omega / self.number_blades
         
-        return chord, twist
-    
+        self.thrust_coefficient = self.thrust / (self.density * (self.rpm/60) ** 2 * self.diameter ** 4)
+        self.power_coefficient = self.shaft_power / (self.density * (self.rpm/60) ** 3 * self.diameter ** 5)
+        self.efficiency = self.advance_ratio * self.thrust_coefficient / self.power_coefficient
+
+        return 
+        
     def change_flight_regime(self, new_velocity, new_thrust):
 
         self.velocity = new_velocity
         self.thrust = new_thrust
-        self.design_propeller_geometry()
+
+        if self.velocity < 1:
+            self.vi = np.sqrt(self.thrust / (2 * self.density * self.propeller_area))
+        else:
+            self.vi = self.velocity / 2 * (np.sqrt(1 + 2 * self.thrust / (self.density * self.propeller_area * self.velocity ** 2)) - 1)
+
+        vrel = np.sqrt((self.velocity + self.vi) ** 2 + (self.omega * self.r) ** 2)
+
+        inflow_angle = np.arctan2((self.velocity + self.vi), self.omega * self.r)  # radians
+        aoa_deg = self.twist - np.radians(inflow_angle)
+
+        cl, cd = get_aero_coefficients(aoa_deg)
+
+        integrand = self.number_blades / 2 * self.density * self.chord * cd * vrel ** 3
+
+        self.power_profile = np.trapz(integrand, self.r)
+        self.power_induced = self.thrust * (self.velocity + self.vi)
+        self.shaft_power = self.power_induced + self.power_profile
         
-        return
-    
-    def compute_coefficients(self, print_coeff=False):
-
-        self.thrust_coefficient = self.thrust / (self.density * (self.rpm/60) ** 2 * self.diameter ** 4)
-        self.power_coefficient = self.shaft_power / (self.density * (self.rpm/60) ** 3 * self.diameter ** 5)
-        self.efficiency = self.advance_ratio * self.thrust_coefficient / self.power_coefficient
-        if print_coeff:
-            print("\nSummary of coefficients:")
-            print("------------------------------------")
-            
-            print(f"Thrust Coefficient: {np.round(self.thrust_coefficient, 7)}")
-            print(f"Power Coefficient: {np.round(self.power_coefficient, 7)}")
-            print(f"New Efficiency: {np.round(self.efficiency*100, 2)}")
-            print()
-
 
         return
     
@@ -242,6 +188,7 @@ class Propeller:
         print(f"Propeller power input: {np.round(self.shaft_power/1000, 2)} [kW]")
         print(f"Number of blades: {self.number_blades}")
         print(f"Propeller advance ratio: {np.round(self.advance_ratio, 5)}")
+        print(f"Propeller disk loading: {np.round(self.thrust/self.propeller_area, 5)}")
         print(f"Error Percentage: {np.round(100 - self.thrust / (np.trapz(self.dT, self.r)) * 100, 2)}%")
 
         if self.efficiency:
