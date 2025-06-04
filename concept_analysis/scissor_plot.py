@@ -104,13 +104,13 @@ D_p_small = 2
 I_p_big =  0.9
 D_p_big = 3
 C_n_b_i = -0.017 # For high wing
-ds_db = 0.1
-Vv_V = 0.8
+ds_db = 0
+Vv_V = 1
 
 A_htail = 10
 lambda_half_htail = 0
 eta = 0.95
-l_v = 3.5
+l_v = 4.5
 
 x_bar_cg = np.linspace(0,1,100)
 
@@ -180,18 +180,40 @@ C_n_beta_a_minus_v = c_n_beta_wing_fuselage (l_cg, l_f, h_f, S_fs, h_f1, h_f2, b
 
 C_n_beta = C_n_beta_a_minus_v + C_Y_b_v * Sv_S * l_v / b * (1 - ds_db) * Vv_V **2
 
-plt.plot (C_n_beta , Sv_S, label='Stability')
-plt.axvline(x=0, color='red', linestyle='--', label='x = 0')
-plt.axvspan(min(C_n_beta), 0, color='red', alpha=0.3, label='Unsafe Region' )
-plt.axvspan(0, max(C_n_beta), color='green', alpha=0.3, label='Safe Region')
+# plt.plot (C_n_beta , Sv_S, label='Stability')
+# plt.axvline(x=0, color='red', linestyle='--', label='x = 0')
+# plt.axvspan(min(C_n_beta), 0, color='red', alpha=0.3, label='Unsafe Region' )
+# plt.axvspan(0, max(C_n_beta), color='green', alpha=0.3, label='Safe Region')
+# plt.ylabel(r"$S_h/S$")
+# plt.xlabel(r"$C_{n_{beta}}$")
+# plt.legend()
+# plt.grid(True)
+# plt.show()
 
-plt.ylabel(r"$S_h/S$")
-plt.xlabel(r"$C_{n_{beta}}$")
-plt.legend()
-plt.grid(True)
+
+x_min, x_max = -0.05, 0.2
+y_min, y_max = 0, 1
+fig, ax = plt.subplots()
+
+ax.axvspan(x_min, 0, ymin=0, ymax=1, color='red', alpha=0.2)
+
+ax.fill_between(C_n_beta, Sv_S, y_max, where=(C_n_beta >= 0), 
+                color='green', alpha=0.3)
+
+ax.fill_between(C_n_beta, Sv_S, y_min, where=(C_n_beta >= 0), 
+                color='red', alpha=0.3)
+
+ax.plot(C_n_beta, Sv_S, color='black', label='Stability')
+
+ax.axvline(x=0, color='red', linestyle='--', label='x = 0')
+
+ax.set_xlabel(r"$C_{n_{\beta}}$")
+ax.set_ylabel(r"$S_h/S$")
+ax.set_xlim(x_min, x_max)
+ax.set_ylim(y_min, y_max)
+ax.grid(True)
+ax.legend()
 plt.show()
-
-
 
 
 
