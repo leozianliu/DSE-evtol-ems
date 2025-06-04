@@ -1,6 +1,6 @@
-from propeller_power_calculator import Propeller
 import numpy as np
 import matplotlib.pyplot as plt
+from propeller_power_calculator import Propeller
 
 cd_fuselage = 0.1444908713
 cd_wing = 0.035
@@ -42,20 +42,20 @@ take_off_time = 120 # seconds per round trip
 landing_time = 120 # seconds per round trip
 cruise_time = 2160 # seconds per round trip
 velocity = 0
-dt = 0.2 
-time = 0
+dt = 2 
 mass = mtow / g
 
 hcruise = 300
-htransition = 150
+htransition = 300
 height_current = 0
 
-flight_altitude_arr = np.array([])
-power_arr_big = np.array([])
-power_arr_small = np.array([])
-time_arr = np.array([])
-energy = np.array([])
+flight_altitude_arr = np.array([0])
+power_arr_big = np.array([0])
+power_arr_small = np.array([0])
+time_arr = np.array([0])
+energy = np.array([0])
 velocity_arr = []
+
 ## Take-Off
 while height_current < htransition:
     
@@ -79,42 +79,39 @@ while height_current < htransition:
     power_arr_small = np.append(power_arr_small, small_prop.shaft_power/1000)
 
     height_current += velocity * dt
-    time_arr = np.append(time_arr, time)
-    energy = np.append(energy, big_prop.shaft_power/1000 * dt / 3600)
+    time_arr = np.append(time_arr, time_arr[-1] + dt)
+    energy = np.append(energy, 2 * (big_prop.shaft_power + small_prop.shaft_power)/1000 * dt / 3600)
     
-    time += dt
-
-print(small_prop.thrust, big_prop.thrust)
-plt.plot(time_arr, 2 * power_arr_big, color='red')
-plt.plot(time_arr, 2 * power_arr_small, color='green')
-plt.plot(time_arr, 2 * power_arr_big + 2 * power_arr_small, color='black')
-plt.grid()
-plt.show()
-## Transitioning
-
-
 
 ## Cruise
 
-# velocity = 1
-# time = 0
-# acceleration = 3 # m/s2
+v_cruise = 55.56 # m/s
+t_cruise = 18 * 60 # seconds
 
-# while time < cruise_time:
-#     time += dt
-#     if velocity < 55.56:
-#         thrust = acceleration * mass + drag(velocity)
-#         velocity += thrust * g / mtow  * dt
-#     else:
-#         velocity = 55.56
-#         thrust = drag(velocity)
-        
-#     print(thrust)
-#     big_prop.change_flight_regime(velocity, thrust)
-#     small_prop.change_flight_regime(velocity, thrust)
+t_start_cruise = time_arr[-1]
 
-#     total_energy_prop1 += big_prop.shaft_power * dt / 3600 / 1000
-#     total_energy_prop2 += small_prop.shaft_power * dt / 3600 / 1000
+thrust_big = (drag(v_cruise + big_prop.vi) / 2) * prop_area_big / (prop_area_big + prop_area_small)
+thrust_small = (drag(v_cruise + big_prop.vi) / 2) * prop_area_small / (prop_area_big + prop_area_small)
+
+big_prop.change_flight_regime(v_cruise, thrust_big)
+small_prop.change_flight_regime(v_cruise, thrust_small)
+
+while time_arr[-1] <= t_start_cruise + t_cruise:
+    
+    time_arr = np.append(time_arr, time_arr[-1] + dt)
+
+    power_arr_big = np.append(power_arr_big, big_prop.shaft_power/1000)
+    power_arr_small = np.append(power_arr_small, small_prop.shaft_power/1000)
+
+    energy = np.append(energy, 2 * (big_prop.shaft_power + small_prop.shaft_power)/1000 * dt / 3600)
 
 
-# print(total_energy_prop1, total_energy_prop2, 'kWh')
+print(small_prop.thrust, big_prop.thrust)
+print(sum(energy) * 2)
+plt.plot(time_arr/60, 2 * power_arr_big, color='red')
+plt.plot(time_arr/60, 2 * power_arr_small, color='green')
+plt.plot(time_arr/60, 2 * power_arr_big + 2 * power_arr_small, color='black')
+plt.ylabel('Power Required [kW]')
+plt.xlabel('Time [min]')
+plt.grid()
+plt.show()
