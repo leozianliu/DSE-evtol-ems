@@ -17,6 +17,7 @@ class LoadsCalculator:
         self.gull_location = 1.95                        # m 
         self.gull_angle = np.radians(-14.9)                            # degrees
         self.engine_offsets_z = np.array([-0.5, 1.0])    # z-offsets (m)
+        self.fuselage_width = 1.8    /2 
 
     def thrust_loads(self):
         shear_t = np.zeros(self.num_points)
@@ -111,8 +112,8 @@ class LoadsCalculator:
 
         #lift_value_at_105 = lift_interp_func(1.05)
         #drag_value_at_105 = drag_interp_func(1.05)
-        lift[self.y_points <= 0.9] = 0 #lift_value_at_105
-        drag[self.y_points <= 0.9] = 0 #drag_value_at_105
+        lift[self.y_points <= self.fuselage_width] = 0 #lift_value_at_105
+        drag[self.y_points <= self.fuselage_width] = 0 #drag_value_at_105
 
         dy = self.y_points[1] - self.y_points[0]
         shear_lift[:-1] = np.flip(np.cumsum(np.flip(lift[1:] * dy))) 
@@ -136,30 +137,47 @@ class LoadsCalculator:
 
         return self.shear_lift, self.shear_drag, self.moment_lift, self.moment_drag, self.normal_lift
     
+    def weight_loads(self, MTOW):
+        shear_weight = np.zeros(self.num_points)
+        shear_weight[self.y_points < self.fuselage_width] = MTOW * 9.81 / 2 
+
+        self.shear_weight = shear_weight
+
+        return self.shear_weight
+    
     def combined_loads(self):
         dy = self.y_points[1] - self.y_points[0]
         if self.flight_mode == 'horizontal':
             shear_x = self.shear_t * -1 # Neglected: + self.shear_drag  
-            shear_z = (self.shear_lift + self.shear_we) * -1 
+            shear_z = self.shear_weight + ((self.shear_lift + self.shear_we) * -1)
             moment_z = self.moment_t  # Neglected: + self.moment_drag
             moment_x = (self.moment_we + self.moment_lift) * -1
             torque = -self.torque_t + self.torque_we
             normal = - self.normal_lift + self.normal_we
         
         else:
-            shear_x = (self.shear_t + self.shear_we) * -1 
+            shear_x = (self.shear_t + self.shear_we) * -1 - self.shear_weight
             shear_z = np.zeros(self.num_points)
             moment_z = self.moment_we + self.moment_t 
             moment_x = np.zeros(self.num_points)
             torque =  self.torque_we - self.torque_t
             normal = np.zeros(self.num_points) 
 
+        # fixing all degrees of freedom at fuselage interface
+        shear_x[self.y_points < self.fuselage_width] = 0
+        shear_z[self.y_points < self.fuselage_width] = 0 
+        moment_z[self.y_points < self.fuselage_width] = 0 
+        moment_x[self.y_points < self.fuselage_width] = 0 
+        torque[self.y_points < self.fuselage_width] = 0 
+        normal[self.y_points < self.fuselage_width] = 0
+
         return shear_x, shear_z, moment_x, moment_z, torque, normal
     
-calculator = LoadsCalculator('vertical', 300)
+calculator = LoadsCalculator('horizontal', 300)
 calculator.thrust_loads()
 calculator.engine_weight_loads()
-shear_lift, shear_drag, moment_lift, moment_drag, normal_lift = calculator.aerodynamic_loads(lift= aero.lift_gull_rh, drag= 2.5 * aero.drag_gull_rh)
+calculator.weight_loads(2200)
+shear_lift, shear_drag, moment_lift, moment_drag, normal_lift = calculator.aerodynamic_loads(lift= 2.5 * aero.lift_gull_rh, drag= 2.5 * aero.drag_gull_rh)
 
 shear_x, shear_z, moment_x, moment_z, torque, normal = calculator.combined_loads()
 
@@ -173,11 +191,11 @@ if __name__ == "__main__":
 
     # shear_x, shear_z, moment_x, moment_z, torque, normal = calculator.combined_loads()
 
-    print("Shear X:\n", shear_x)
-    print("Shear Z:\n", shear_z)
-    print("Moment X:\n", moment_x)
-    print("Moment Z:\n", moment_z)
-    print("Torque:\n", torque)
+    # print("Shear X:\n", shear_x)
+    # print("Shear Z:\n", shear_z)
+    # print("Moment X:\n", moment_x)
+    # print("Moment Z:\n", moment_z)
+    # print("Torque:\n", torque)
 
     fig, axs = plt.subplots(2, 3, figsize=(18, 10))  # 2 rows, 3 columns
 
