@@ -11,12 +11,9 @@ cd_interp = interp1d(_polar_df.AOA, _polar_df.cd, kind='cubic', fill_value="extr
 
 def get_aero_coefficients(alpha):
     alpha = np.array(alpha)
-    CL = np.array([])
-    CD = np.array([])
-    for angle in alpha:
-        CL = np.append(CL, cl_interp(angle))
-        CD = np.append(CD, cd_interp(angle))
-    return CL , CD
+    CL = cl_interp(alpha)
+    CD = cd_interp(alpha)
+    return CL, CD
 
 
 class Propeller:
