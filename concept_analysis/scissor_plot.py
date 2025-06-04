@@ -42,8 +42,26 @@ def c_mac_wing_fuselage (cm0_airfoil, sweep, A, b_f, h_f, l_f, S, c_bar, c_l_0, 
 
     return c_mac_wing_fuselage
 
+def c_n_beta_wing_fuselage (l_cg, l_f, h_f, S_fs, h_f1, h_f2, b_f1, b_f2, Bp, I_p_small, D_p_small, I_p_big, D_p_big, C_n_b_i):
 
-######## Constants ##########
+    k_beta = 0.3 * (l_cg / l_f) + 0.75 * (h_f / l_f) - 0.105
+    term1 = (S_fs * l_f) / (S * b)
+    term2 = (h_f1 / h_f2) ** 0.5
+    term3 = (b_f2 / b_f1) ** (1/3)
+    C_n_beta_f = -k_beta * term1 * term2 * term3
+    print('C_n_beta_fuselage =', C_n_beta_f)
+
+    C_n_beta_p = -0.053 * Bp * (I_p_small * D_p_small **2 * 2/ S / b + I_p_big * D_p_big **2 * 2/ S / b )
+    print('C_n_beta_propeller =', C_n_beta_p)
+
+    print('C_n_beta_wing =', C_n_b_i)
+
+    C_n_beta =  C_n_beta_f +  C_n_beta_p + C_n_b_i
+
+    return C_n_beta 
+
+
+######## Constants , all in SI unit and radian ##########
 C_r = 2
 taper = 0.4
 b_f = 1.8
@@ -71,14 +89,34 @@ cm0_airfoil = -0.039
 c_l_0 = 0.34
 C_L_H = -0.6
 C_L_minus_H = 0.8
-M_htail= 0.16
+
+###################### Vertical constant ##############
+C_Y_b_v = 1
+l_cg = 2.4 
+S_fs = 9 
+h_f1 = 1.913
+h_f2 = 1.785
+b_f1 = 1.730
+b_f2 = 1.727
+Bp = 5 # Number of blades for each propeller
+I_p_small = 0.9
+D_p_small = 2
+I_p_big =  0.9
+D_p_big = 3
+C_n_b_i = -0.017 # For high wing
+ds_db = 0.1
+Vv_V = 0.8
+
 A_htail = 10
 lambda_half_htail = 0
 eta = 0.95
+l_v = 3.5
 
 x_bar_cg = np.linspace(0,1,100)
+
 x_bar_ac_wing = 0.5  
 
+M_htail= M_wing * Vh_V
 C_L_alpha_wing = C_l_alpha (A_wing, M_wing, eta, lambda_half_wing)
 C_L_alpha_htail = C_l_alpha (A_htail, M_htail, eta, lambda_half_htail)
 
@@ -136,7 +174,22 @@ plt.show()
 
 ################################## Vertical stabilizer ##################################
 
+# Stability curve
+Sv_S = np.linspace(0,1,100)
+C_n_beta_a_minus_v = c_n_beta_wing_fuselage (l_cg, l_f, h_f, S_fs, h_f1, h_f2, b_f1, b_f2, Bp, I_p_small, D_p_small, I_p_big, D_p_big, C_n_b_i)
 
+C_n_beta = C_n_beta_a_minus_v + C_Y_b_v * Sv_S * l_v / b * (1 - ds_db) * Vv_V **2
+
+plt.plot (C_n_beta , Sv_S, label='Stability')
+plt.axvline(x=0, color='red', linestyle='--', label='x = 0')
+plt.axvspan(min(C_n_beta), 0, color='red', alpha=0.3, label='Unsafe Region' )
+plt.axvspan(0, max(C_n_beta), color='green', alpha=0.3, label='Safe Region')
+
+plt.ylabel(r"$S_h/S$")
+plt.xlabel(r"$C_{n_{beta}}$")
+plt.legend()
+plt.grid(True)
+plt.show()
 
 
 
