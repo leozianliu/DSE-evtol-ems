@@ -54,7 +54,7 @@ de_da = 0.1
 l_h = 3.5
 S = 14
 c_bar = 1.7
-Vh_V = 1
+Vh_V = 0.8
 s_margin = 0.01
 M_wing = 0.16
 A_wing = 10
@@ -134,7 +134,7 @@ plt.grid(True)
 plt.show()
 
 
-
+################################## Vertical stabilizer ##################################
 
 
 
