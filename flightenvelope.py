@@ -50,9 +50,9 @@ plt.plot([Vneg, Vd], [n_min, n_min], color='black',  label='n_min')
 plt.axhline(y=0, color='lightgray', linestyle=':')
 
 # Vertical lines for key speeds
-plt.axvline(x=Vs, color='blue', linestyle='--', label='Vs')
-plt.axvline(x=Va, color='blue', linestyle='--', label='Va')
-plt.axvline(x=Vc, color='blue', linestyle='--', label='Vc')
+plt.axvline(x=Vs, color='lightblue', linestyle='--', label='Vs')
+plt.axvline(x=Va, color='dodgerblue', linestyle='--', label='Va')
+plt.axvline(x=Vc, color='skyblue', linestyle='--', label='Vc')
 plt.axvline(x=Vd, color='blue', label='Vd', linestyle='--')
 plt.plot([Vd, Vd], [n_min, n_max], color='black')
 
@@ -70,5 +70,4 @@ plt.xlim(0, Vd + 10)
 plt.ylim(n_min - 0.5, n_max + 0.5)
 plt.show()
 plt.close()
-
 
