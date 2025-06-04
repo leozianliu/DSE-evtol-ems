@@ -77,21 +77,23 @@ class StressCalculations:
         area = self.thickness * (2 * np.pi * self.radius_out)
         sigma_tube = self.normal_load / area
 
+        volume = area * self.half_span/self.num_points
+
         # Stress in MPa
-        return sigma_tube, max(sigma_tube, key=abs)
+        return sigma_tube, max(sigma_tube, key=abs), volume
 
     def get_combined_stresses_tube(self):
-        sigma_tube, max_sigma1 = self.get_normal_stress_tube()
+        sigma_tube, max_sigma1, volume = self.get_normal_stress_tube()
         sigma_bending_max, sigma_bending_min = self.get_normal_stress_bending_tube()
-        total_normal_max = (sigma_tube + sigma_bending_max) /1e6
-        total_normal_min = (sigma_tube + sigma_bending_min) /1e6
+        total_normal_max = 1.5 * (sigma_tube + sigma_bending_max) /1e6
+        total_normal_min = 1.5 * (sigma_tube + sigma_bending_min) /1e6
 
 
         tau_tube, max_tau1 = self.get_torsion_stress_tube()
         tau_shear_max, tau_shear_min = self.get_shear_stress_tube()
         # tau_tube = np.zeros(300)
-        total_shear_max = (tau_tube + tau_shear_max) /1e6
-        total_shear_min = (tau_tube + tau_shear_min) /1e6
+        total_shear_max = 1.5 * (tau_tube + tau_shear_max) /1e6
+        total_shear_min = 1.5 * (tau_tube + tau_shear_min) /1e6
 
         # Reaturns values in MPa
         return total_normal_max, total_normal_min, total_shear_max, total_shear_min
@@ -103,13 +105,13 @@ class StressCalculations:
 # loads = [np.linspace(0, 100, 300), np.linspace(0, 100, 300), np.linspace(0, 100, 300), np.linspace(0, 100, 300), np.linspace(0, 100, 300), np.linspace(0, 100, 300)]
 
 ### TUBE STEPS
-tube = TubeGeometry(12.252, 0.23, 0.008, [1, 2, 3, 4, 5, 6], [0.001, 0.001, 0.001, 0.001, 0.001, 0.001], [0.5, 1, 1.5, 2, 3, 4, 5, 6], [0.01, 0.01, 0.015, 0.025, 0.025, 0.025, 0.025, 0.025], taper_ratio = 0.4, true_if_steps_false_if_tapered = True)
+tube = TubeGeometry(12.252, 0.26, 0.007, [1, 2, 3, 4, 5, 6], [0.001, 0.001, 0.001, 0.001, 0.001, 0.002], [1, 2, 3, 4, 5, 6], [0.026, 0.026, 0.026, 0.026, 0.026, 0.026], taper_ratio = 0.4, true_if_steps_false_if_tapered = False)
 
 ### TUBE TAPER
 # tube = TubeGeometry(12.252, 0.4, 0.004, taper_ratio = 0.4, true_if_steps_false_if_tapered = False)
 cross_section = tube.get_tube_matrix(300)
 
-calculator = LoadsCalculator('horizontal', 300)
+calculator = LoadsCalculator('vertical', 300)
 calculator.thrust_loads()
 calculator.engine_weight_loads()
 shear_lift, shear_drag, moment_lift, moment_drag, normal_lift = calculator.aerodynamic_loads(lift= aero.lift_gull_rh, drag= aero.drag_gull_rh)
