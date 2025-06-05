@@ -105,7 +105,7 @@ I_p_big =  0.9
 D_p_big = 3
 C_n_b_i = -0.017 # For high wing
 ds_db = 0
-Vv_V = 1
+Vv_V = 1.2
 
 A_htail = 10
 lambda_half_htail = 0
@@ -156,8 +156,10 @@ upper_curve = np.maximum(Sh_S_cont, Sh_S_sta_margined)
 plt.plot(x_bar_cg, Sh_S_cont, label='Controllability')
 plt.plot(x_bar_cg, Sh_S_sta_margined, label='Stability with S.M.')
 plt.plot(x_bar_cg, Sh_S_sta_un, label='Stability')
-plt.axvline(x=0.37, color='red', linestyle='--', label='x = 0.37')
-plt.axvline(x=0.5, color='red', linestyle='--', label='x = 0.5')
+plt.axvline(x=0.37, color='red', linestyle='--', label='x_cg = 0.37')
+plt.axvline(x=0.5, color='red', linestyle='--', label='x_cg = 0.5')
+# plt.set_xlim(0, 1)
+# plt.set_ylim(0, 0.6)
 
 y_max = np.max(upper_curve)
 plt.fill_between(x_bar_cg, upper_curve, y_max, color='green', alpha=0.3, label='Safe Region')
@@ -166,7 +168,7 @@ plt.fill_between(x_bar_cg, 0, upper_curve, color='red', alpha=0.3, label='Unsafe
 
 plt.ylim(bottom=0)
 plt.ylabel(r"$S_h/S$")
-plt.xlabel(r"$\bar{x_{cg}}$")
+plt.xlabel(r"$\bar{x}_{cg}$")
 plt.legend()
 plt.grid(True)
 plt.show()
@@ -203,9 +205,9 @@ ax.fill_between(C_n_beta, Sv_S, y_max, where=(C_n_beta >= 0),
 ax.fill_between(C_n_beta, Sv_S, y_min, where=(C_n_beta >= 0), 
                 color='red', alpha=0.3)
 
-ax.plot(C_n_beta, Sv_S, color='black', label='Stability')
+ax.plot(C_n_beta, Sv_S, color='royalblue', label='Stability')
 
-ax.axvline(x=0, color='red', linestyle='--', label='x = 0')
+ax.axvline(x=0, color='red', linestyle='--', label='C_n_beta = 0')
 
 ax.set_xlabel(r"$C_{n_{\beta}}$")
 ax.set_ylabel(r"$S_h/S$")
