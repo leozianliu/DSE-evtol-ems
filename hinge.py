@@ -44,12 +44,18 @@ def gear_sizing():
     b = 1.25 / pd    # dedendum
     t = 0.5 * pc     # tooth thickness
 
-    return teeth, teeth_for_part, d, pd, pc, a, b, t
+    #helical considerations
+    axial_pitch = pc / np.cos(helix_angle)  # axial pitch (mm)
+
+    return teeth, teeth_for_part, d, pd, pc, a, b, t, axial_pitch
 
 # Run
 gear = gear_sizing()
-teeth, teeth_for_part, d, pd, pc, a, b, t = gear
+teeth, teeth_for_part, d, pd, pc, a, b, t, axial_pitch = gear
 
 print(f'Teeth: {teeth}, Teeth for part: {teeth_for_part:.2f}, Pitch Diameter: {d:.2f} mm, '
       f'Diametral Pitch: {pd:.4f}, Circular Pitch: {pc:.2f} mm, '
-      f'Addendum: {a:.2f} mm, Dedendum: {b:.2f} mm, Tooth Thickness: {t:.2f} mm')
+      f'Addendum: {a:.2f} mm, Dedendum: {b:.2f} mm, Tooth Thickness: {t:.2f} mm, '
+      f'Axial Pitch: {axial_pitch:.2f} mm')
+
+print(f'Torque from the wing: {M_wing:.2f} Nm')
