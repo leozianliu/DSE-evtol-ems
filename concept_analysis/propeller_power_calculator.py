@@ -205,14 +205,12 @@ class Propeller:
                 axs[0].grid(True)
 
 
-
                 # Plot Twist
                 axs[1].plot(self.r / self.rtip, self.twist, color='red')
                 axs[1].set_title('Twist Distribution')
                 axs[1].set_xlabel('Position along blade radius')
                 axs[1].set_ylabel('Twist angle [deg]')
                 axs[1].grid(True)
-
 
 
                 plt.show()
