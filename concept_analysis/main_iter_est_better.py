@@ -65,6 +65,7 @@ m_tilt_mech = 100 #kg for the tilt-wing mechanism
 figure_of_merit = 0.8 # converting induced to total power for hovering
 
 #Weight safety factor:
+safety_factor_structure_weight = 1 #Safety factor for MTOW estimation due to the kink in the wing structure, not applied to tilt mechanism
 safety_factor_battery_weight = 1.1 #Safety factor for MTOW estimation
 safety_factor_propulsion_weight = 1 #Safety factor for MTOW estimation
 
@@ -213,6 +214,7 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
     m_powersource = m_powersource * safety_factor_battery_weight # for cooling and casing masses
     m_equipment = 450/3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
     m_structure = 1000/3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
+    m_structure = m_structure * safety_factor_structure_weight # Safety factor for structure mass
     m_structure = m_structure + m_tilt_mech #kg for the tilt-wing mechanism
     
     m_propulsion = calculateSingleRotorMass(P_takeoff_small2xThrust, D_rotor_small) * 2\
