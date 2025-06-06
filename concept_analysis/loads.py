@@ -5,18 +5,18 @@ from scipy.interpolate import interp1d
 import aeroloads as aero
 
 class LoadsCalculator:
-    def __init__(self, flight_mode, num_points):
-        self.engine_positions_y = np.array([1.95, 4.884])  # [2.41, 4.884] y-locations from along wingbox (m) 4.884
+    def __init__(self, flight_mode, thrust, num_points):
+        self.engine_positions_y = np.array([2.415, 5.029])  # [2.41, 4.884] y-locations from along wingbox (m) 4.884
         self.engine_offsets_x = np.array([1, 1])    # x-offsets from wingbox(m)
-        self.engine_thrusts = np.array([7000.0, 4000.0])  #  N cruise: [2800, 1400]   vertical: [7000.0, 4000.0] 
-        self.engine_weights = np.array([50, 60]) * 9.81   # [50, 60] N
-        self.half_span = 6.126                             # m  6.126    
+        self.engine_thrusts = np.array(thrust)  #  N cruise: [2800, 1400]   vertical: [7000.0, 4000.0] 
+        self.engine_weights = np.array([100, 100]) * 9.81   # [50, 60] N
+        self.half_span = 6.241                             # m  6.126    
         self.num_points = num_points
         self.flight_mode = flight_mode
         self.y_points = np.linspace(0, self.half_span, self.num_points)
-        self.gull_location = 1.95                        # m 
-        self.gull_angle = np.radians(-14.9)                            # degrees
-        self.engine_offsets_z = np.array([-0.5, 1.0])    # z-offsets (m)
+        self.gull_location = 2.241                        # m 
+        self.gull_angle = np.radians(-20)                            # degrees
+        self.engine_offsets_z = np.array([-0.696, 0.447])    # z-offsets (m)
         self.fuselage_width = 1.8    /2 
 
     def thrust_loads(self):
@@ -164,7 +164,7 @@ class LoadsCalculator:
             normal = np.zeros(self.num_points) 
 
         # fixing all degrees of freedom at fuselage interface
-        shear_x[self.y_points < self.fuselage_width] = 0
+        shear_x[self.y_points < self.fuselage_width] = 0 
         shear_z[self.y_points < self.fuselage_width] = 0 
         moment_z[self.y_points < self.fuselage_width] = 0 
         moment_x[self.y_points < self.fuselage_width] = 0 
@@ -173,10 +173,10 @@ class LoadsCalculator:
 
         return shear_x, shear_z, moment_x, moment_z, torque, normal
     
-calculator = LoadsCalculator('horizontal', 300)
+calculator = LoadsCalculator('vertical', [14000.0, 4200.0], 300)
 calculator.thrust_loads()
 calculator.engine_weight_loads()
-calculator.weight_loads(2200)
+calculator.weight_loads(2500)
 shear_lift, shear_drag, moment_lift, moment_drag, normal_lift = calculator.aerodynamic_loads(lift= 2.5 * aero.lift_gull_rh, drag= 2.5 * aero.drag_gull_rh)
 
 shear_x, shear_z, moment_x, moment_z, torque, normal = calculator.combined_loads()

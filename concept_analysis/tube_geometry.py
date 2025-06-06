@@ -29,15 +29,15 @@ class TubeGeometry:
         # Changes the diameter based on y-location
         diameter = self.root_diameter
 
-        if self.when_steps:
-            for i in range(len(self.diameter_spanwise_steps)):
-                if y > self.diameter_spanwise_steps[i]:
-                    diameter = diameter - self.diameter_steps[i]
-                else:
-                    diameter = diameter
+        # if self.when_steps:
+        #     for i in range(len(self.diameter_spanwise_steps)):
+        #         if y > self.diameter_spanwise_steps[i]:
+        #             diameter = diameter - self.diameter_steps[i]
+        #         else:
+        #             diameter = diameter
 
-        else:
-            diameter = diameter - self.diameter_ratio * y
+        #else:
+        diameter = diameter - self.diameter_ratio * (y - 0.9)
 
         return diameter
 
@@ -106,8 +106,11 @@ class TubeGeometry:
         matrix = np.array([thicknesses, inertias_Ix, inertias_J, radii_out, y_values])
 
         return matrix
+    
 
 # tube = TubeGeometry(12, 50, 5, [1, 2, 3, 4, 5], [1, 1, 1, 1, 0], [1, 2, 3, 4, 5], [1, 1, 1, 1, 0])
+# tube.get_diameter()
+
 # matrix = tube.get_tube_matrix(100)
 # radii_out = matrix[3]
 # print(radii_out)
