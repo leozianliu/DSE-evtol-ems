@@ -116,7 +116,7 @@ def powerSingleRotorAllPhases(T, v_takeoff, v_cruise, S_rotor_single, eff_motor,
     # Power calculations for all phases
     P_takeoff = singleMotorTakeoffPower(T, v_takeoff, S_rotor_single, eff_motor, eff_propeller_takeoff) #W (power required for takeoff for single rotor)
     P_transition1 = None #W (power required for transition 1 for single rotor), valid assumption
-    P_climb = None # NEED TO BE CHANGED WAITING FOR NUMBER FROM VIKKI!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    P_climb = singleMotorClimbPower(roc, T, v_cruise) 
     P_cruise = singleMotorCruisePower(T, v_cruise, eff_motor, eff_propeller_cruise)
     P_descent = 0 # unpowered descent
     P_transition2 = None #W (power required for transition 2 for single rotor), valid assumption
@@ -124,7 +124,6 @@ def powerSingleRotorAllPhases(T, v_takeoff, v_cruise, S_rotor_single, eff_motor,
     P_landing = P_hover #W (power required for landing for single rotor)
 
     # Overwrite
-    P_climb = singleMotorClimbPower(roc, T, v_cruise)
     P_transition1 = P_transition2 = P_hover
 
     return [P_takeoff, P_transition1, P_climb, P_cruise, P_descent, P_transition2, P_hover, P_landing]
