@@ -181,7 +181,7 @@ class LoadsCalculator:
 
         return shear_x, shear_z, moment_x, moment_z, torque, normal
     
-calculator = LoadsCalculator('horizontal', [14000.0, 4200.0], 300)
+calculator = LoadsCalculator('horizontal', [2800, 1400], 300)
 calculator.thrust_loads()
 calculator.engine_weight_loads()
 calculator.weight_loads(2500)

@@ -96,7 +96,7 @@ flight_cases = [
 ] + [
     # Vertical flight cases
     ('vertical', 1, thickness)
-    for thickness in [[7000, 4000], [14000, 0], [0, 8000]]
+    for thickness in [[9000, 5000], [18000, 0], [0, 10000]]
 ]
 
 final_thickness = np.zeros(num_points)
