@@ -66,7 +66,7 @@ figure_of_merit = 0.8 # converting induced to total power for hovering
 
 #Weight safety factor:
 safety_factor_battery_weight = 1.1 #Safety factor for MTOW estimation
-safety_factor_propulsion_weight = 1.1 #Safety factor for MTOW estimation
+safety_factor_propulsion_weight = 1 #Safety factor for MTOW estimation
 
 #Code parameters
 mtow_prev = 0 #N
