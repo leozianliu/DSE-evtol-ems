@@ -17,6 +17,9 @@ t_transition2 = 20
 t_hover = 10
 t_landing = 30 #sec
 
+dh_climb = 150 #m (climb height in fixed wing mode)
+roc = dh_climb / t_climb #m/s (rate of climb)
+
 t_takeoff = flights * t_takeoff #sec
 t_transition1 = flights * t_transition1 #sec
 t_climb = flights * t_climb #sec
@@ -28,27 +31,42 @@ t_landing = flights * t_landing #sec
 
 #Aircraft parameters:
 eff_motor = 0.95 #Efficiency of the motor
-eff_small_propeller_takeoff = 0.80 #Efficiency of the propeller during takeoff
-eff_small_propeller_cruise = 0.80 #Efficiency of the propeller
-eff_big_propeller_takeoff = 0.85 #Efficiency of the propeller during takeoff
-eff_big_propeller_cruise = 0.85 #Efficiency of the propeller during cruise
+eff_small_propeller_takeoff = 0.75 #Efficiency of the propeller during takeoff
+eff_small_propeller_cruise = 0.75 #Efficiency of the propeller
+eff_big_propeller_takeoff = 0.80 #Efficiency of the propeller during takeoff
+eff_big_propeller_cruise = 0.80 #Efficiency of the propeller during cruise
 
-D_rotor_big = 3.2
-D_rotor_small = 2.2
+D_rotor_big = 3.20
+D_rotor_small = 2.25
 S_disks = ((D_rotor_big / 2)**2 * np.pi + (D_rotor_small / 2)**2 * np.pi) * 2 #m^2 (total disk area based on size requirements, can be changed later)
 
-LD_ratio = 11.3 #Lift to drag ratio
+# Aerodynamic parameters:
+Cl_wing_cruise = 0.8 #Lift coefficient of the wing in cruise
+S_wing = 14
+Cd_wing = 0.035
+S_fuselage = 3.43
+Cd_fuselage = 0.144
+S_tail = 0
+Cd_tail = 0
+S_strut = 0
+Cd_strut = 0
+S_gear = 14
+Cd_gear = 0.007 #Drag coefficient of the landing gear
+
+LD_ratio_aircraft = (S_wing * Cl_wing_cruise) / (S_wing * Cd_wing + S_fuselage * Cd_fuselage + S_tail * Cd_tail + S_strut * Cd_strut + S_gear * Cd_gear) #Lift to drag ratio of the aircraft
+print("Lift to drag ratio of the aircraft: ", LD_ratio_aircraft)
 
 #Configuration parameters:
-density_batt_whkg = 350 #300Wh/kg (Chinese),
+density_batt_whkg = 300 #300Wh/kg (Chinese),
 density_batt = density_batt_whkg*3600 #J/kg (density of the battery in J/kg)
-DoD = 0.85 #Depth of discharge for the battery (100% to 15%)
+DoD = 0.8 #Depth of discharge (DoD), same effect as battery degradation, 80% of the battery capacity is used
 # blockage_factor_tiltwing = 1.0  #0.90 # Free area over total area for propellers in tilt-wing configuration
-m_tilt_mech = 0 #kg for the tilt-wing mechanism
+m_tilt_mech = 100 #kg for the tilt-wing mechanism
 figure_of_merit = 0.8 # converting induced to total power for hovering
 
-#Estimation MTOW safety factor:
-# safety_factor_mtow = 1.1 #Safety factor for MTOW estimation
+#Weight safety factor:
+safety_factor_battery_weight = 1.1 #Safety factor for MTOW estimation
+safety_factor_propulsion_weight = 1.1 #Safety factor for MTOW estimation
 
 #Code parameters
 mtow_prev = 0 #N
@@ -70,10 +88,14 @@ print("Disk area original: ", S_disks, "m^2")
 # print('Disk area adjusted for blockage factor: ', S_disks, "m^2")
 
 def singleMotorCruisePower(weight, v_cruise, eff_motor, eff_propeller):
-    T_cruise = weight / LD_ratio
+    T_cruise = weight / LD_ratio_aircraft
     P_cruise = T_cruise * v_cruise
     P_cruise = P_cruise / eff_motor / eff_propeller #W, with efficiency applied
     return P_cruise
+
+def singleMotorClimbPower(roc, weight, v_air):
+    P_climb = roc * weight + 0.5 * rho_air * v_air**3 * (S_wing * Cd_wing + S_fuselage * Cd_fuselage + S_tail * Cd_tail + S_strut * Cd_strut + S_gear * Cd_gear)
+    return P_climb
 
 def singleMotorHoverPower(T, S_disk, eff_motor, eff_propeller):
     P_induced = T**(3/2) / np.sqrt(2 * rho_air * S_disk)
@@ -101,7 +123,7 @@ def powerSingleRotorAllPhases(T, v_takeoff, v_cruise, S_rotor_single, eff_motor,
     P_landing = P_hover #W (power required for landing for single rotor)
 
     # Overwrite
-    P_climb = P_cruise
+    P_climb = singleMotorClimbPower(roc, T, v_cruise)
     P_transition1 = P_transition2 = P_hover
 
     return [P_takeoff, P_transition1, P_climb, P_cruise, P_descent, P_transition2, P_hover, P_landing]
@@ -133,11 +155,10 @@ def calculateSingleRotorMass(cont_power, D_rotor):#def calculatePropulsionMass(c
 
     cont_power = cont_power / 1000 # W to kW
 
-    m_motor_cont_power = 0.249*cont_power+1.56
+    m_motor_cont_power = 0.1156 * cont_power + 4.52
     m_motor_cont_torque = 0
-    # m_motor_cont_torque = 0.0995*cont_torque-0.117
     m_motor = max(m_motor_cont_power, m_motor_cont_torque)#, m_motor_cont_torque, m_motor_peak_torque)
-    m_inverter = 0.0187*cont_power + 0.433
+    m_inverter = 0 #0.0187*cont_power + 0.433 # motor mass includes inverter mass
     m_propeller = 10 * (D_rotor/2.3) # Volocopter's rotor mass is 7.5 kg for 2.3 m diameter rotor, assumes a linear scaling with diameter
 
     return (m_motor + m_inverter + m_propeller)
@@ -189,12 +210,14 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
 
     # Energy source mass as a function of type, energy capacity and output power
     m_powersource = E_total / density_batt / DoD #kg
+    m_powersource = m_powersource * safety_factor_battery_weight # for cooling and casing masses
     m_equipment = 450/3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
     m_structure = 1000/3700 * mtow/g #kg (ratio for battery powered vehicles from https://www.researchgate.net/publication/318235979_A_Study_in_Reducing_the_Cost_of_Vertical_Flight_with_Electric_Propulsion/figures)
-    m_structure = m_structure #+ m_tilt_mech #kg for the tilt-wing mechanism
+    m_structure = m_structure + m_tilt_mech #kg for the tilt-wing mechanism
     
     m_propulsion = calculateSingleRotorMass(P_takeoff_small2xThrust, D_rotor_small) * 2\
         + calculateSingleRotorMass(P_takeoff_big2xThrust, D_rotor_big) * 2 #kg (mass of the propulsion system)
+    m_propulsion = m_propulsion * safety_factor_propulsion_weight # Safety factor for propulsion mass
     m_eom = m_powersource + m_equipment + m_structure + m_propulsion
 
     mtow_prev = mtow #N
