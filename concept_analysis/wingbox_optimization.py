@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import minimize_scalar
 from loads import LoadsCalculator
 from tube_geometry import TubeGeometry
-from stress_and_deflections import StressCalculations
+from stress_job import StressCalculations
 import aeroloads as aero
 import matplotlib.pyplot as plt
 
@@ -124,6 +124,7 @@ for flight_mode, load_factor, thrust in flight_cases:
     calculator.engine_weight_loads()
     calculator.aerodynamic_loads(lift=1.1 * load_factor * aero.lift_gull_rh, drag=aero.drag_gull_rh)
     calculator.weight_loads(2500)
+    calculator.aero_moment()
     shear_x, shear_z, moment_x, moment_z, torque, normal = calculator.combined_loads()
     load = [shear_x, shear_z, moment_x, moment_z, torque, normal]
 

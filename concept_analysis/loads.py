@@ -145,6 +145,14 @@ class LoadsCalculator:
 
         return self.shear_weight
     
+    def aero_moment(self):
+        mask = self.y_points <= 5.1
+        root_torque = 150 * math.ceil(5.1)
+        aerodynamic_moment = np.zeros_like(self.y_points)
+        aerodynamic_moment[mask] = np.linspace(root_torque, 150, mask.sum())
+        self.aerodynamic_moment = aerodynamic_moment
+        return self.aerodynamic_moment
+    
     def combined_loads(self):
         dy = self.y_points[1] - self.y_points[0]
         if self.flight_mode == 'horizontal':
@@ -152,7 +160,7 @@ class LoadsCalculator:
             shear_z = self.shear_weight + ((self.shear_lift + self.shear_we) * -1)
             moment_z = self.moment_t  # Neglected: + self.moment_drag
             moment_x = (self.moment_we + self.moment_lift) * -1
-            torque = -self.torque_t + self.torque_we
+            torque = -self.torque_t + self.torque_we - self.aerodynamic_moment
             normal = - self.normal_lift + self.normal_we
         
         else:
@@ -173,10 +181,11 @@ class LoadsCalculator:
 
         return shear_x, shear_z, moment_x, moment_z, torque, normal
     
-calculator = LoadsCalculator('vertical', [14000.0, 4200.0], 300)
+calculator = LoadsCalculator('horizontal', [14000.0, 4200.0], 300)
 calculator.thrust_loads()
 calculator.engine_weight_loads()
 calculator.weight_loads(2500)
+calculator.aero_moment()
 shear_lift, shear_drag, moment_lift, moment_drag, normal_lift = calculator.aerodynamic_loads(lift= 2.5 * aero.lift_gull_rh, drag= 2.5 * aero.drag_gull_rh)
 
 shear_x, shear_z, moment_x, moment_z, torque, normal = calculator.combined_loads()

@@ -117,6 +117,7 @@ calculator.thrust_loads()
 calculator.engine_weight_loads()
 shear_lift, shear_drag, moment_lift, moment_drag, normal_lift = calculator.aerodynamic_loads(lift= 2.5 * aero.lift_gull_rh, drag= aero.drag_gull_rh)
 calculator.weight_loads(2500)
+calculator.aero_moment()
 shear_x, shear_z, moment_x, moment_z, torque, normal = calculator.combined_loads()
 loads = [shear_x, shear_z, moment_x, moment_z, torque, normal]
 
