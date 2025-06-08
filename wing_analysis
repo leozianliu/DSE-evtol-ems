@@ -1,0 +1,10 @@
+import numpy as np
+from wing_design import design_wing
+
+
+
+
+# Idea; try a couple of thickness and velocity values
+# For each combination, find the L/D and the weight of the wing
+# Using this values, find MTOW
+# Select the combination that gave the lowest MTOW
