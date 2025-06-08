@@ -23,9 +23,9 @@ eff_motor = 0.95 #Efficiency of the motor
 eff_propeller_takeoff = 0.85 #Efficiency of the propeller
 
 # Note: If integrated propulsion is used, N_disks_cruise is not used
-S_disks = 35.3 #m^2 (total disk area based on size requirements, can be changed later)
-N_disks_cruise = None #Number of disks (between 2 and 4)
-N_disks_takeoff = 6 #Number of disks (between 4 and 8)
+S_disks = 25.13 #m^2 (total disk area based on size requirements, can be changed later)
+N_disks_cruise = 1 #Number of disks (between 2 and 4)
+N_disks_takeoff = 8 #Number of disks (between 4 and 8)
 #D_rotor = 4 #m (max w_hover/2)
 #S_rotor = D_rotor**2 * np.pi / 4 #m^2
 S_rotor = S_disks / N_disks_takeoff #m^2 (disk area per rotor)
@@ -37,8 +37,8 @@ C_D = 0.4 #Drag coefficient of the front of the vehicle
 #Configuration parameters:
 battery = True
 wing = True
-integrated_prop = True #Use the same motors for hover and cruise
-tilt_wing = True
+integrated_prop = False #Use the same motors for hover and cruise
+tilt_wing = False
 
 #MTOW
 mtom = 2500 #kg #Maximum takeoff mass (MTOM) of the vehicle (GUESS)
@@ -48,7 +48,7 @@ g = 9.81 #m/s^2
 rho_air = 1.225 #kg/m^3
 density_batt_whkg = 300 #300Wh/kg (Chinese),
 density_batt = density_batt_whkg*3600*0.80 #degrade to 80% of the battery capacity
-separate_prop_extra_drag_factor = 1.10 # Skin friction of motor booms increases skin drag by 30% and total drag by 15% (skin drag is 50% of total drag)
+separate_prop_extra_drag_factor = 1.15 # Skin friction of motor booms increases skin drag by 30% and total drag by 15% (skin drag is 50% of total drag)
 LD_reduction_factor = 1/separate_prop_extra_drag_factor
 blockage_factor_tiltwing = 0.90 # Free area over total area for propellers in tilt-wing configuration
 blockage_factor_tiltrotor = 0.78 # Free area over total area for propellers in tilt-rotor configuration
@@ -94,8 +94,12 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
     #Energy calculation:
     if wing:
         # Cruise power calculation
+        LD_ratio = 13
+        if tilt_wing:
+            LD_ratio = 15
         T = mtow / LD_ratio #N
         if not integrated_prop:
+            LD_ratio = 15
             # Cruise power calculation
             T = mtow / (LD_ratio * LD_reduction_factor) # Skin friction of motor booms increases skin drag by 30% and total drag by 15% (skin drag is 50% of total drag)
         P_cruise = T * v_cruise# / eff_motor
