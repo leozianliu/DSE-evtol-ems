@@ -8,7 +8,7 @@ class LoadsCalculator:
     def __init__(self, flight_mode, thrust, num_points):
         self.engine_positions_y = np.array([2.415, 5.029])  # [2.41, 4.884] y-locations from along wingbox (m) 4.884
         self.engine_offsets_x = np.array([1, 1])    # x-offsets from wingbox(m)
-        self.engine_thrusts = np.array(thrust)  #  N cruise: [2800, 1400]   vertical: [7000.0, 4000.0] 
+        self.engine_thrusts = np.array(thrust)  #  N cruise: [2800, 1400]   vertical: [5000.0, 9000.0] 
         self.engine_weights = np.array([100, 100]) * 9.81   # [50, 60] N
         self.half_span = 6.241                             # m  6.126    
         self.num_points = num_points

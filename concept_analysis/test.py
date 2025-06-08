@@ -14,12 +14,11 @@ def optimize_thickness_distribution(half_span, root_diameter, taper_ratio,
     span_points = np.linspace(0, half_span, num_points)
     thicknesses = np.zeros(num_points)
 
-
     calculator = LoadsCalculator(flight_mode, thrust, num_points)
     calculator.thrust_loads()
     calculator.engine_weight_loads()
+    calculator.aerodynamic_loads(lift=1.1 * load_factor * aero.lift_gull_rh, drag=aero.drag_gull_rh)
     calculator.aero_moment()
-    calculator.aerodynamic_loads(lift= 1.1 * load_factor * aero.lift_gull_rh, drag=aero.drag_gull_rh)
     calculator.weight_loads(2500)
 
     shear_x, shear_z, moment_x, moment_z, torque, normal = calculator.combined_loads()
@@ -38,20 +37,20 @@ def optimize_thickness_distribution(half_span, root_diameter, taper_ratio,
             geometry = tube.get_tube_matrix(num_points)
 
             cross_section = [
-                np.array([geometry[0][i]]),  # thickness
-                np.array([geometry[1][i]]),  # inertia_Ix
-                np.array([geometry[2][i]]),  # inertia_J
-                np.array([geometry[3][i]]),  # radius_out
-                np.array([geometry[4][i]])   # y_value
+                np.array([geometry[0][i]]),
+                np.array([geometry[1][i]]),
+                np.array([geometry[2][i]]),
+                np.array([geometry[3][i]]),
+                np.array([geometry[4][i]])
             ]
 
             local_load = [
-                np.array([load[0][i]]),     # shear_x 
-                np.array([load[1][i]]),     # shear_z
-                np.array([load[2][i]]),     # moment_x
-                np.array([load[3][i]]),     # moment_z
-                np.array([load[4][i]]),     # torque
-                np.array([load[5][i]])      # normal
+                np.array([load[0][i]]),
+                np.array([load[1][i]]),
+                np.array([load[2][i]]),
+                np.array([load[3][i]]),
+                np.array([load[4][i]]),
+                np.array([load[5][i]])
             ]
 
             stress_calc = StressCalculations(cross_section, local_load, 360)
@@ -79,8 +78,8 @@ def optimize_thickness_distribution(half_span, root_diameter, taper_ratio,
 
     return span_points, thicknesses
 
-half_span = 6.2412         
-root_diameter = 0.27 
+half_span = 6.2412
+root_diameter = 0.27
 taper_ratio = 0.5
 stress_limits = {
     'sigma_max': 400,
@@ -90,14 +89,12 @@ stress_limits = {
 }
 
 flight_cases = [
-    # Horizontal flight cases
-    ('horizontal', load_factor, thickness)
-    for load_factor in [-1, 1, 2.5]
-    for thickness in [[2800, 1400], [0, 4200], [4200, 0]]
+    ('horizontal', lf, t)
+    for lf in [-1, 1, 2.5]
+    for t in [[2800, 1400], [0, 4200], [4200, 0]]
 ] + [
-    # Vertical flight cases
-    ('vertical', 1, thickness)
-    for thickness in [[9000, 5000], [18000, 0], [0, 10000]]
+    ('vertical', 1, t)
+    for t in [[9000, 5000], [18000, 0], [0, 10000]]
 ]
 
 final_thickness = np.zeros(num_points)
@@ -105,21 +102,16 @@ final_thickness = np.zeros(num_points)
 for flight_mode, load_factor, thrust in flight_cases:
     print(f"Running case: mode={flight_mode}, n={load_factor}, thrust={thrust}")
     _, thickness_per_case = optimize_thickness_distribution(
-    half_span, root_diameter, taper_ratio, stress_limits, flight_mode, load_factor
-)
+        half_span, root_diameter, taper_ratio, stress_limits, flight_mode, load_factor
+    )
     final_thickness = np.maximum(final_thickness, thickness_per_case)
 
 span_pts = np.linspace(0, half_span, num_points)
 
-max_sigma = np.full(num_points, -np.inf)
-min_sigma = np.full(num_points, np.inf)
-max_tau = np.full(num_points, -np.inf)
-min_tau = np.full(num_points, np.inf)
+# Visualize stress for each case using final thickness
+fig, axs = plt.subplots(2, 1, figsize=(12, 10), sharex=True)
 
 for flight_mode, load_factor, thrust in flight_cases:
-    print(f"Evaluating stress at max thickness for: mode={flight_mode}, n={load_factor}, thrust={thrust}")
-    
-    # Load calculation for the case
     calculator = LoadsCalculator(flight_mode, thrust, num_points)
     calculator.thrust_loads()
     calculator.engine_weight_loads()
@@ -129,21 +121,20 @@ for flight_mode, load_factor, thrust in flight_cases:
     shear_x, shear_z, moment_x, moment_z, torque, normal = calculator.combined_loads()
     load = [shear_x, shear_z, moment_x, moment_z, torque, normal]
 
+    sigma_case = np.zeros(num_points)
+    tau_case = np.zeros(num_points)
+
     for i in range(num_points):
-        # Overwrite geometry with final thickness
-            # Evaluate stress using final_thickness at all span points
         tube = TubeGeometry(
-        span=half_span * 2,
-        root_diameter=root_diameter,
-        root_thickness=final_thickness[i], 
-        taper_ratio=taper_ratio,
-        true_if_steps_false_if_tapered=False
+            span=half_span * 2,
+            root_diameter=root_diameter,
+            root_thickness=final_thickness[i],
+            taper_ratio=taper_ratio,
+            true_if_steps_false_if_tapered=False
         )
         geometry = tube.get_tube_matrix(num_points)
-        geometry[0][i] = final_thickness[i]
-
         cross_section = [
-            np.array([geometry[0][i]]),
+            np.array([final_thickness[i]]),
             np.array([geometry[1][i]]),
             np.array([geometry[2][i]]),
             np.array([geometry[3][i]]),
@@ -157,66 +148,30 @@ for flight_mode, load_factor, thrust in flight_cases:
             np.array([load[4][i]]),
             np.array([load[5][i]])
         ]
-
         stress_calc = StressCalculations(cross_section, local_load, 360)
         stress = stress_calc.get_combined_stresses_tube()
+        sigma_case[i] = stress[0][0]
+        tau_case[i] = stress[2][0]
 
-        sigma_max = stress[0][0]
-        sigma_min = stress[1][0]
-        tau_max = stress[2][0]
-        tau_min = stress[3][0]
-
-        max_sigma[i] = max(max_sigma[i], sigma_max)
-        min_sigma[i] = min(min_sigma[i], sigma_min)
-        max_tau[i] = max(max_tau[i], tau_max)
-        min_tau[i] = min(min_tau[i], tau_min)
-
-fig, axs = plt.subplots(1, 2, figsize=(14, 6))
-
-axs[0].plot(span_pts, max_sigma, label='Max Normal Stress')
-axs[0].plot(span_pts, min_sigma, label='Min Normal Stress')
-axs[0].plot(span_pts, max_tau, label='Max Shear Stress')
-axs[0].plot(span_pts, min_tau, label='Min Shear Stress')
+    label = f"{flight_mode}, n={load_factor}, T={thrust}"
+    axs[0].plot(span_pts, sigma_case, label=label)
+    axs[1].plot(span_pts, tau_case, label=label)
 
 axs[0].axhline(stress_limits['sigma_max'], color='gray', linestyle='--', label='σ max limit')
 axs[0].axhline(stress_limits['sigma_min'], color='gray', linestyle='--', label='σ min limit')
-axs[0].axhline(stress_limits['tau_max'], color='red', linestyle='--', label='τ max limit')
-axs[0].axhline(stress_limits['tau_min'], color='red', linestyle='--', label='τ min limit')
+axs[1].axhline(stress_limits['tau_max'], color='red', linestyle='--', label='τ max limit')
+axs[1].axhline(stress_limits['tau_min'], color='red', linestyle='--', label='τ min limit')
 
-axs[0].set_xlabel("Spanwise position [m]")
-axs[0].set_ylabel("Stress [Pa]")
-axs[0].set_title("Worst-Case Stress Envelope")
-axs[0].legend()
+axs[0].set_ylabel("Normal Stress σ [Pa]")
+axs[0].set_title("Normal Stress for All Load Cases")
+axs[0].legend(fontsize=8)
 axs[0].grid(True)
 
-axs[1].plot(span_pts, final_thickness, label='Final Min Thickness', color='tab:blue')
 axs[1].set_xlabel("Spanwise position [m]")
-axs[1].set_ylabel("Thickness [m]")
-axs[1].set_title("Unified Thickness Distribution")
-axs[1].legend()
+axs[1].set_ylabel("Shear Stress τ [Pa]")
+axs[1].set_title("Shear Stress for All Load Cases")
+axs[1].legend(fontsize=8)
 axs[1].grid(True)
 
 plt.tight_layout()
 plt.show()
-
-tube = TubeGeometry(
-    span=half_span * 2,
-    root_diameter=root_diameter,
-    root_thickness=0.01,  # dummy, will overwrite thickness
-    taper_ratio=taper_ratio,
-    true_if_steps_false_if_tapered=False
-)
-
-fuselage_width = 1.8 / 2
-idx = np.searchsorted(span_pts, fuselage_width)
-final_thickness[:idx] = final_thickness[idx]
-
-geometry = tube.get_tube_matrix(num_points)
-r_outer = geometry[3]  # outer radius at each point
-thicknesses = final_thickness
-r_inner = r_outer - thicknesses
-
-dy = span_pts[1] - span_pts[0]  # constant spacing
-volume = np.sum(np.pi * (r_outer**2 - r_inner**2) * dy)  # integrate over span
-
-print(f"Estimated wingbox volume: {volume:.4f} m³")
