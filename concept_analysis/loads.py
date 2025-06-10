@@ -6,17 +6,17 @@ import aeroloads as aero
 
 class LoadsCalculator:
     def __init__(self, flight_mode, thrust, num_points):
-        self.engine_positions_y = np.array([2.415, 5.029])  # [2.41, 4.884] y-locations from along wingbox (m) 4.884
+        self.engine_positions_y = np.array([2.415, 5.029])  # [2.415, 5.029] y-locations from along wingbox (m) 4.884
         self.engine_offsets_x = np.array([1, 1])    # x-offsets from wingbox(m)
-        self.engine_thrusts = np.array(thrust)  #  N cruise: [2800, 1400]   vertical: [5000.0, 9000.0] 
+        self.engine_thrusts = np.array(thrust)  #  N cruise: [935, 481]   vertical: [5000.0, 9000.0] 
         self.engine_weights = np.array([100, 100]) * 9.81   # [50, 60] N
-        self.half_span = 6.241                             # m  6.126    
+        self.half_span = 6.241                                 # m  6.241      
         self.num_points = num_points
         self.flight_mode = flight_mode
         self.y_points = np.linspace(0, self.half_span, self.num_points)
-        self.gull_location = 2.241                        # m 
+        self.gull_location = 2.241 #2.241                        # m 
         self.gull_angle = np.radians(-20)                            # degrees
-        self.engine_offsets_z = np.array([-0.696, 0.447])    # z-offsets (m)
+        self.engine_offsets_z = np.array([-0.696, 0.447])    # z-offsets (m) [-0.696, 0.447]
         self.fuselage_width = 1.8    /2 
 
     def thrust_loads(self):
@@ -99,7 +99,7 @@ class LoadsCalculator:
     def aerodynamic_loads(self, lift, drag):
         shear_lift = np.zeros(self.num_points)
         moment_lift = np.zeros(self.num_points)
-        shear_drag = np.zeros(self.num_points)
+        shear_drag = drag
         moment_drag = np.zeros(self.num_points) 
         normal_lift = np.zeros(self.num_points)
 
@@ -107,23 +107,23 @@ class LoadsCalculator:
 
         lift_interp_func = interp1d(y, lift, bounds_error=False, fill_value='extrapolate')
         lift = lift_interp_func(self.y_points)
-        drag_interp_func = interp1d(y, drag, bounds_error=False, fill_value='extrapolate')
-        drag = drag_interp_func(self.y_points)
+        # drag_interp_func = interp1d(y, drag, bounds_error=False, fill_value='extrapolate')
+        # drag = drag_interp_func(self.y_points)
 
         #lift_value_at_105 = lift_interp_func(1.05)
         #drag_value_at_105 = drag_interp_func(1.05)
         lift[self.y_points <= self.fuselage_width] = 0 #lift_value_at_105
-        drag[self.y_points <= self.fuselage_width] = 0 #drag_value_at_105
+        # drag[self.y_points <= self.fuselage_width] = 0 #drag_value_at_105
 
         dy = self.y_points[1] - self.y_points[0]
         shear_lift[:-1] = np.flip(np.cumsum(np.flip(lift[1:] * dy))) 
-        shear_drag[:-1] = np.flip(np.cumsum(np.flip(drag[1:] * dy)))
+        # shear_drag[:-1] = np.flip(np.cumsum(np.flip(drag[1:] * dy)))
 
         shear_lift[self.y_points > self.gull_location] = shear_lift[self.y_points > self.gull_location] / math.cos(self.gull_angle)
-        shear_drag[self.y_points > self.gull_location] = shear_drag[self.y_points > self.gull_location]
+        # shear_drag[self.y_points > self.gull_location] = shear_drag[self.y_points > self.gull_location]
         
         moment_lift[:-1] = np.flip(np.cumsum(np.flip(shear_lift[1:] * dy))) * -1
-        moment_drag[:-1] = np.flip(np.cumsum(np.flip(shear_drag[1:] * dy))) 
+        # moment_drag[:-1] = np.flip(np.cumsum(np.flip(shear_drag[1:] * dy))) 
 
         # Normal before kink from rotated lift after kink
         idx_kink = np.argmin(np.abs(self.y_points - self.gull_location))
@@ -181,12 +181,12 @@ class LoadsCalculator:
 
         return shear_x, shear_z, moment_x, moment_z, torque, normal
     
-calculator = LoadsCalculator('horizontal', [2800, 1400], 300)
+calculator = LoadsCalculator('horizontal', [935, 481], 300)
 calculator.thrust_loads()
 calculator.engine_weight_loads()
-calculator.weight_loads(2500)
+calculator.weight_loads(0)
 calculator.aero_moment()
-shear_lift, shear_drag, moment_lift, moment_drag, normal_lift = calculator.aerodynamic_loads(lift= 2.5 * aero.lift_gull_rh, drag= 2.5 * aero.drag_gull_rh)
+shear_lift, shear_drag, moment_lift, moment_drag, normal_lift = calculator.aerodynamic_loads(lift= 2.5 * aero.lift_gull_rh, drag = np.zeros(43, dtype=int))
 
 shear_x, shear_z, moment_x, moment_z, torque, normal = calculator.combined_loads()
 

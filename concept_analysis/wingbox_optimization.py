@@ -6,7 +6,7 @@ from stress_job import StressCalculations
 import aeroloads as aero
 import matplotlib.pyplot as plt
 
-num_points = 300
+num_points = 100
 
 def optimize_thickness_distribution(half_span, root_diameter, taper_ratio,
                                     stress_limits, flight_mode, load_factor):
@@ -19,7 +19,7 @@ def optimize_thickness_distribution(half_span, root_diameter, taper_ratio,
     calculator.thrust_loads()
     calculator.engine_weight_loads()
     calculator.aero_moment()
-    calculator.aerodynamic_loads(lift= 1.1 * load_factor * aero.lift_gull_rh, drag=aero.drag_gull_rh)
+    calculator.aerodynamic_loads(lift= 1.1 * load_factor * aero.lift_gull_rh, drag = np.zeros(43, dtype=int))
     calculator.weight_loads(2500)
 
     shear_x, shear_z, moment_x, moment_z, torque, normal = calculator.combined_loads()
@@ -36,7 +36,7 @@ def optimize_thickness_distribution(half_span, root_diameter, taper_ratio,
             )
 
             geometry = tube.get_tube_matrix(num_points)
-
+            
             cross_section = [
                 np.array([geometry[0][i]]),  # thickness
                 np.array([geometry[1][i]]),  # inertia_Ix
@@ -67,23 +67,23 @@ def optimize_thickness_distribution(half_span, root_diameter, taper_ratio,
             min_combined_stress = (min_stress**2 + 3 * min_shear**2)**0.5
 
             penalty = 0.0
-            if not (stress_limits['sigma_min'] <= max_stress <= stress_limits['sigma_max']):
-                penalty += (abs(max_stress - np.clip(max_stress, stress_limits['sigma_min'], stress_limits['sigma_max']))) ** 2
-            if not (stress_limits['sigma_min'] <= min_stress <= stress_limits['sigma_max']):
-                penalty += (abs(min_stress - np.clip(min_stress, stress_limits['sigma_min'], stress_limits['sigma_max']))) ** 2
-            if not (stress_limits['tau_min'] <= max_shear <= stress_limits['tau_max']):
-                penalty += (abs(max_shear - np.clip(max_shear, stress_limits['tau_min'], stress_limits['tau_max']))) ** 2
-            if not (stress_limits['tau_min'] <= min_shear <= stress_limits['tau_max']):
-                penalty += (abs(min_shear - np.clip(min_shear, stress_limits['tau_min'], stress_limits['tau_max']))) ** 2
+            # if not (stress_limits['sigma_min'] <= max_stress <= stress_limits['sigma_max']):
+            #     penalty += (abs(max_stress - np.clip(max_stress, stress_limits['sigma_min'], stress_limits['sigma_max']))) ** 2
+            # if not (stress_limits['sigma_min'] <= min_stress <= stress_limits['sigma_max']):
+            #     penalty += (abs(min_stress - np.clip(min_stress, stress_limits['sigma_min'], stress_limits['sigma_max']))) ** 2
+            # if not (stress_limits['tau_min'] <= max_shear <= stress_limits['tau_max']):
+            #     penalty += (abs(max_shear - np.clip(max_shear, stress_limits['tau_min'], stress_limits['tau_max']))) ** 2
+            # if not (stress_limits['tau_min'] <= min_shear <= stress_limits['tau_max']):
+            #     penalty += (abs(min_shear - np.clip(min_shear, stress_limits['tau_min'], stress_limits['tau_max']))) ** 2
             if not (stress_limits['sigma_min'] <= max_combined_stress <= stress_limits['sigma_max']):
                 penalty += (abs(max_combined_stress - np.clip(max_combined_stress, stress_limits['sigma_min'], stress_limits['sigma_max']))) ** 2
             if not (stress_limits['sigma_min'] <= min_combined_stress <= stress_limits['sigma_max']):
                 penalty += (abs(min_combined_stress - np.clip(min_combined_stress, stress_limits['sigma_min'], stress_limits['sigma_max']))) ** 2
             
 
-            return t + 1e12 * penalty
+            return t + 1e10 * penalty
 
-        opt = minimize_scalar(optimize, bounds=(0.001, 0.05), method='bounded')
+        opt = minimize_scalar(optimize, bounds=(0.001, 0.1), method='bounded')
         thicknesses[i] = opt.x
 
     return span_points, thicknesses
@@ -92,8 +92,8 @@ half_span = 6.2412
 root_diameter = 0.27 
 taper_ratio = 0.5
 stress_limits = {
-    'sigma_max': 350,
-    'sigma_min': -350,
+    'sigma_max': 470,
+    'sigma_min': -470,
     'tau_max': 280,
     'tau_min': -280
 }
@@ -132,7 +132,7 @@ for flight_mode, load_factor, thrust in flight_cases:
     calculator = LoadsCalculator(flight_mode, thrust, num_points)
     calculator.thrust_loads()
     calculator.engine_weight_loads()
-    calculator.aerodynamic_loads(lift=1.1 * load_factor * aero.lift_gull_rh, drag=aero.drag_gull_rh)
+    calculator.aerodynamic_loads(lift= load_factor * aero.lift_gull_rh, drag = np.zeros(43, dtype=int))
     calculator.weight_loads(2500)
     calculator.aero_moment()
     shear_x, shear_z, moment_x, moment_z, torque, normal = calculator.combined_loads()
@@ -152,12 +152,13 @@ for flight_mode, load_factor, thrust in flight_cases:
         geometry[0][i] = final_thickness[i]
 
         cross_section = [
-            np.array([geometry[0][i]]),
-            np.array([geometry[1][i]]),
-            np.array([geometry[2][i]]),
-            np.array([geometry[3][i]]),
-            np.array([geometry[4][i]])
-        ]
+                np.array([geometry[0][i]]),  # thickness
+                np.array([geometry[1][i]]),  # inertia_Ix
+                np.array([geometry[2][i]]),  # inertia_J
+                np.array([geometry[3][i]]),  # radius_out
+                np.array([geometry[4][i]])   # y_value
+            ]
+        
         local_load = [
             np.array([load[0][i]]),
             np.array([load[1][i]]),
@@ -180,8 +181,8 @@ for flight_mode, load_factor, thrust in flight_cases:
         max_tau[i] = max(max_tau[i], tau_max)
         min_tau[i] = min(min_tau[i], tau_min)
 
-max_combined = np.sqrt(max_sigma**2 + 3 * max_tau**2)
-min_combined = np.sqrt(min_sigma**2 + 3 * min_tau**2)
+max_combined = np.sqrt(max_sigma ** 2 + 3 * max_tau ** 2)
+min_combined = np.sqrt(min_sigma ** 2 + 3 * min_tau ** 2)
 
 fig, axs = plt.subplots(1, 2, figsize=(14, 6))
 
@@ -217,7 +218,7 @@ plt.show()
 tube = TubeGeometry(
     span=half_span * 2,
     root_diameter=root_diameter,
-    root_thickness=0.01,
+    root_thickness=0.02,
     taper_ratio=taper_ratio,
     true_if_steps_false_if_tapered=False
 )
@@ -232,6 +233,6 @@ thicknesses = final_thickness
 r_inner = r_outer - thicknesses
 
 dy = span_pts[1] - span_pts[0]  # constant spacing
-volume = np.sum(np.pi * (r_outer**2 - r_inner**2) * dy)  # integrate over span
+volume = np.sum(np.pi * (r_outer ** 2 - r_inner ** 2) * dy)  # integrate over span
 
 print(f"Estimated wingbox volume: {volume:.4f} m³")

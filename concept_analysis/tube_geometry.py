@@ -114,8 +114,3 @@ class TubeGeometry:
 # matrix = tube.get_tube_matrix(100)
 # radii_out = matrix[3]
 # print(radii_out)
-
-
-
-
-
