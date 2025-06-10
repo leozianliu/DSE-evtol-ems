@@ -19,7 +19,7 @@ def optimize_thickness_distribution(half_span, root_diameter, taper_ratio,
     calculator.thrust_loads()
     calculator.engine_weight_loads()
     calculator.aero_moment()
-    calculator.aerodynamic_loads(lift= 1.1 * load_factor * aero.lift_gull_rh, drag = np.zeros(43, dtype=int))
+    calculator.aerodynamic_loads(lift= load_factor * aero.lift_gull_rh, drag = np.zeros(43, dtype=int))
     calculator.weight_loads(2500)
 
     shear_x, shear_z, moment_x, moment_z, torque, normal = calculator.combined_loads()
