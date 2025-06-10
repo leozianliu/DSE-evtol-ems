@@ -62,6 +62,10 @@ def optimize_thickness_distribution(half_span, root_diameter, taper_ratio,
             max_shear = stress[2][0]
             min_shear = stress[3][0]
 
+            #Combined stress
+            max_combined_stress = (max_stress**2 + 3 * max_shear**2)**0.5
+            min_combined_stress = (min_stress**2 + 3 * min_shear**2)**0.5
+
             penalty = 0.0
             if not (stress_limits['sigma_min'] <= max_stress <= stress_limits['sigma_max']):
                 penalty += (abs(max_stress - np.clip(max_stress, stress_limits['sigma_min'], stress_limits['sigma_max']))) ** 2
@@ -71,8 +75,13 @@ def optimize_thickness_distribution(half_span, root_diameter, taper_ratio,
                 penalty += (abs(max_shear - np.clip(max_shear, stress_limits['tau_min'], stress_limits['tau_max']))) ** 2
             if not (stress_limits['tau_min'] <= min_shear <= stress_limits['tau_max']):
                 penalty += (abs(min_shear - np.clip(min_shear, stress_limits['tau_min'], stress_limits['tau_max']))) ** 2
+            if not (stress_limits['sigma_min'] <= max_combined_stress <= stress_limits['sigma_max']):
+                penalty += (abs(max_combined_stress - np.clip(max_combined_stress, stress_limits['sigma_min'], stress_limits['sigma_max']))) ** 2
+            if not (stress_limits['sigma_min'] <= min_combined_stress <= stress_limits['sigma_max']):
+                penalty += (abs(min_combined_stress - np.clip(min_combined_stress, stress_limits['sigma_min'], stress_limits['sigma_max']))) ** 2
+            
 
-            return t + 1e6 * penalty
+            return t + 1e12 * penalty
 
         opt = minimize_scalar(optimize, bounds=(0.001, 0.05), method='bounded')
         thicknesses[i] = opt.x
@@ -83,10 +92,10 @@ half_span = 6.2412
 root_diameter = 0.27 
 taper_ratio = 0.5
 stress_limits = {
-    'sigma_max': 400,
-    'sigma_min': -400,
-    'tau_max': 80,
-    'tau_min': -80
+    'sigma_max': 350,
+    'sigma_min': -350,
+    'tau_max': 280,
+    'tau_min': -280
 }
 
 flight_cases = [
@@ -171,12 +180,18 @@ for flight_mode, load_factor, thrust in flight_cases:
         max_tau[i] = max(max_tau[i], tau_max)
         min_tau[i] = min(min_tau[i], tau_min)
 
+max_combined = np.sqrt(max_sigma**2 + 3 * max_tau**2)
+min_combined = np.sqrt(min_sigma**2 + 3 * min_tau**2)
+
 fig, axs = plt.subplots(1, 2, figsize=(14, 6))
 
 axs[0].plot(span_pts, max_sigma, label='Max Normal Stress')
 axs[0].plot(span_pts, min_sigma, label='Min Normal Stress')
 axs[0].plot(span_pts, max_tau, label='Max Shear Stress')
 axs[0].plot(span_pts, min_tau, label='Min Shear Stress')
+
+axs[0].plot(span_pts, max_combined, label='Max Combined Stress')
+axs[0].plot(span_pts, min_combined, label='Min Combined Stress')
 
 axs[0].axhline(stress_limits['sigma_max'], color='gray', linestyle='--', label='σ max limit')
 axs[0].axhline(stress_limits['sigma_min'], color='gray', linestyle='--', label='σ min limit')
@@ -202,7 +217,7 @@ plt.show()
 tube = TubeGeometry(
     span=half_span * 2,
     root_diameter=root_diameter,
-    root_thickness=0.01,  # dummy, will overwrite thickness
+    root_thickness=0.01,
     taper_ratio=taper_ratio,
     true_if_steps_false_if_tapered=False
 )
