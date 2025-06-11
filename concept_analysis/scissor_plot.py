@@ -60,22 +60,21 @@ def c_n_beta_wing_fuselage (l_cg, l_f, h_f, S_fs, h_f1, h_f2, b_f1, b_f2, Bp, I_
 
     return C_n_beta 
 
-
 ######## Constants , all in SI unit and radian ##########
-C_r = 2
-taper = 0.4
+C_r = 1.4
+taper = 0.457
 b_f = 1.8
 b = 12
-S_net_wing = 14
-S_wing = 14 + b_f * C_r
+S_net_wing = 11.272
+S_wing = S_net_wing + b_f * C_r
 de_da = 0.1
-l_h = 3.5
-S = 14
-c_bar = 1.7
+l_h = 4.5
+S = 11.272
+c_bar = 1.089
 Vh_V = 0.8
-s_margin = 0.01
-M_wing = 0.16
-A_wing = 10
+s_margin = 0.05
+M_wing = 0.21
+A_wing = 13.565
 lambda_half_wing = 0
 c_g = S/b
 h_f = 1.85 + 0.325
@@ -83,15 +82,15 @@ l_fn = 1.5
 l_f = 6
 lambda_quarter = 0
 V = 55.6
-rho = 1.225
+rho = 1
 lam_bda = 0
-cm0_airfoil = -0.039
-c_l_0 = 0.34
+cm0_airfoil = -0.092
+c_l_0 = 0.5
 C_L_H = -0.6
 C_L_minus_H = 0.8
 
 ###################### Vertical constant ##############
-C_Y_b_v = 1
+C_Y_b_v = np.pi/2 * 1.5
 l_cg = 2.4 
 S_fs = 9 
 h_f1 = 1.913
@@ -105,16 +104,16 @@ I_p_big =  0.9
 D_p_big = 3
 C_n_b_i = -0.017 # For high wing
 ds_db = 0
-Vv_V = 1.2
+Vv_V = 1
 
-A_htail = 10
+A_htail = 5
 lambda_half_htail = 0
 eta = 0.95
 l_v = 4.5
 
-x_bar_cg = np.linspace(0,1,100)
+x_bar_cg = np.linspace(0,1,1000)
 
-x_bar_ac_wing = 0.5  
+x_bar_ac_wing = 0.25
 
 M_htail= M_wing * Vh_V
 C_L_alpha_wing = C_l_alpha (A_wing, M_wing, eta, lambda_half_wing)
@@ -158,13 +157,15 @@ plt.plot(x_bar_cg, Sh_S_sta_margined, label='Stability with S.M.')
 plt.plot(x_bar_cg, Sh_S_sta_un, label='Stability')
 plt.axvline(x=0.37, color='red', linestyle='--', label='x_cg = 0.37')
 plt.axvline(x=0.5, color='red', linestyle='--', label='x_cg = 0.5')
-# plt.set_xlim(0, 1)
-# plt.set_ylim(0, 0.6)
+
 
 y_max = np.max(upper_curve)
 plt.fill_between(x_bar_cg, upper_curve, y_max, color='green', alpha=0.3, label='Safe Region')
 
 plt.fill_between(x_bar_cg, 0, upper_curve, color='red', alpha=0.3, label='Unsafe Region')
+
+plt.xlim(0, 1)           # Set x-axis range
+plt.ylim(0, 0.55)        # Set y-axis range
 
 plt.ylim(bottom=0)
 plt.ylabel(r"$S_h/S$")
@@ -177,7 +178,7 @@ plt.show()
 ################################## Vertical stabilizer ##################################
 
 # Stability curve
-Sv_S = np.linspace(0,1,100)
+Sv_S = np.linspace(0,1,1000)
 C_n_beta_a_minus_v = c_n_beta_wing_fuselage (l_cg, l_f, h_f, S_fs, h_f1, h_f2, b_f1, b_f2, Bp, I_p_small, D_p_small, I_p_big, D_p_big, C_n_b_i)
 
 C_n_beta = C_n_beta_a_minus_v + C_Y_b_v * Sv_S * l_v / b * (1 - ds_db) * Vv_V **2
@@ -200,10 +201,10 @@ fig, ax = plt.subplots()
 ax.axvspan(x_min, 0, ymin=0, ymax=1, color='red', alpha=0.2)
 
 ax.fill_between(C_n_beta, Sv_S, y_max, where=(C_n_beta >= 0), 
-                color='green', alpha=0.3)
+                color='green', alpha=0.3, label='Safe Region')
 
 ax.fill_between(C_n_beta, Sv_S, y_min, where=(C_n_beta >= 0), 
-                color='red', alpha=0.3)
+                color='red', alpha=0.3, label='Unsafe Region')
 
 ax.plot(C_n_beta, Sv_S, color='royalblue', label='Stability')
 

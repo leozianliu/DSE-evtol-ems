@@ -19,8 +19,8 @@ d_nose = 0.35306 #[m]
 w_nose = 0.14478 #[m]
 
 S = 14 # [m^2] Wing reference area
-C_ds_main = 1 # [-] 
-C_ds_nose = 1 # [-] 
+C_ds_main = 1.1 # [-] 
+C_ds_nose = 1.1 # [-] 
 
 #############################################
 
@@ -28,6 +28,8 @@ C_d_main = (d_main*w_main)/S*(C_ds_main)
 C_d_nose = (d_nose*w_nose)/S*(C_ds_nose)/2
 
 total_dd_ut = C_d_main + C_d_nose
+D_ut = 0.5 * rho * V**2 * S * total_dd_ut
+
 
 ################# Retractable ################
 
@@ -39,6 +41,7 @@ if total_dd_ut > total_dd_t :
     print('Use retractable landing gear!')
     print('Drag coefficient for retractable:', total_dd_t)
     print('Drag coefficient for unretractable:', total_dd_ut)
+    print(D_ut)
 else:
     print('Use tractable landing gear!')
     print('Drag coefficient for retractable:', total_dd_t)
