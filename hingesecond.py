@@ -88,34 +88,26 @@ print()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 ##TORQUE REQUIREMENTS
 g = 9.81
-m_wing = 150
+m_wing = 190
 
+#there is no angular acceleration -- no inertial torque
 #Inertial torque
-r_inertia = R/1000 #turn to m
-ang_acc = deg_to_rad(20) # rad/s^2 #assuming this
-inertial_wing = 1/3 * m_wing * r_inertia**2  # kg*m^2
-torque_inertial = inertial_wing * ang_acc  # Nm -- this turns out to be negligible in the end
-
-'''
-#Aero torque
-V = 200/3.6 # m/s
-rho = 1.225  # kg/m^3
-q = 0.5 * rho * V**2  # dynamic pressure
-cm = 0.044  # moment coefficient
-c_r = 2  # root chord in m
-tau_aero = q * c_r* cm  # N*m
-'''
+#r_inertia = R/1000 #turn to m
+#ang_acc = # rad/s^2 #assuming this
+#inertial_wing = 1/3 * m_wing * r_inertia**2  # kg*m^2
+#torque_inertial = inertial_wing * ang_acc  # Nm -- this turns out to be negligible in the end
 
 #aerodynamic torque
-c_r = 2 #root chord [m]
-c_hinge = 0.4 * c_r #center of the hinge from the leading edge 
-c_cg = 0.584 # from the leading edge
+c_r = 1.4 #root chord [m]
+c_hinge = 0.309 * c_r #center of the hinge from the leading edge [m]
+c_cg = 0.584 # from the leading edge [m]
 arm = abs(c_hinge - c_cg)
+
 Cm = 0.491 
 rho = 1.225 #kg/m^3
 air_velocity = 35 #m/s
-rotational_velocity = deg_to_rad(45) * arm
-aero_velocity = np.sqrt(air_velocity**2 + rotational_velocity**2)
+rotational_velocity = 45 * np.pi /180 * arm #m/s
+aero_velocity = np.sqrt(air_velocity**2 + rotational_velocity**2) #m/s
 S = 11.3
 torque_aero = Cm * 1/2 * rho * aero_velocity**2 * S * c_r
 
@@ -125,11 +117,10 @@ torque_gravitational = w_wing * arm  # N*m
 
 control_torque = 21000 #Nm #from Leonhard's calculations
 
-total_torque = (torque_gravitational + control_torque + torque_inertial + torque_aero)/1000
+total_torque = (torque_gravitational + control_torque + torque_aero)/1000
 print(f'TORQUE IT NEEDS TO SUSTAIN -- \n'
       f'Gravitational Torque: {torque_gravitational:.2f} Nm, \n'
       f'Control Torque: {control_torque:.2f} Nm, \n'
-      f'Inertial Torque: {torque_inertial:.2f} Nm, \n'
       f'Aerodynamic Torque: {torque_aero:.2f} Nm, \n'
       f'Total Torque: {total_torque:.2f} kNm')
 print()
@@ -176,7 +167,7 @@ motor_torque_requirement = motor_power_requirement / worm_angular_velocity  #the
 
 print(f'MOTOR REQUIREMENTS: -- \n'
       f'Helical velocity: {helical_angular_velocity:.2f} rad/s, \n'
-      f'Worm velocity: {worm_velocity} deg/s, \n'
+      f'Worm velocity: {worm_velocity:.2f} deg/s, \n'
       f'Worm velocity: {worm_angular_velocity:.2f} rad/s, \n'   
       f'RPM of the motor: {worm_RPM:.2f} RPM \n'
       f'Motor Power Requirement: {motor_power_requirement:.2f} kW, \n'
@@ -194,3 +185,9 @@ RPM_worm = worm_RPM
 gearbox_ratio = RPM_motor / worm_RPM #7:1 RPM motor to RPM worm
 print(f'GEARBOX SIZING: -- \n'
       f'Gearbox ratio: {gearbox_ratio:.2f} \n')
+
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#Total hinge sizing
+height = 20 + wingbox_diameter*10 + total_height*2 + gear_thickness*2 + diameter_worm + total_height*2
+print(f'Total hinge height: {height:.2f} mm')

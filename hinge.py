@@ -107,7 +107,7 @@ tau_aero = q * c_r* cm  # N*m
 
 #aerodynamic torque
 c_r = 2 #root chord [m]
-c_hinge = 0.4 * c_r #center of the hinge from the leading edge 
+c_hinge = 0.309 * c_r #center of the hinge from the leading edge 
 c_cg = 0.88 # from the leading edge
 arm = abs(c_hinge - c_cg)
 Cm = 0.044 
