@@ -30,7 +30,7 @@ w_LV_battery = 20
 w_battery_MS = 20
 
 x_LV_battery = 0.8
-x_HV_battery = 1.87 #orignal 1.95
+x_HV_battery = 1.88 #1.95 + 0.55 #orignal 1.95
 top_with_battery = top + x_LV_battery*w_LV_battery + w_HV_battery * x_HV_battery 
 w_with_battery = w_fuselage + w_HV_battery + w_LV_battery
 x_cg_fuselage_battery = top_with_battery / w_with_battery
@@ -51,7 +51,7 @@ w_equipment = 61
 w_stretcher = 35
 
 x_cockpit_instruments = 0.45
-x_eq = 1.6 
+x_eq = 1.4
 x_stretcher = 3.2
 
 top_with_more = top_with_seats + w_cockpit_instruments * x_cockpit_instruments + w_equipment * x_eq + w_stretcher * x_stretcher
@@ -119,7 +119,7 @@ print(f'Location fo the hinge: {x_hinge:.2f} m from the nose \n')
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #PLOTTING
 y_graph = 0
-plt.figure(figsize=(6,2))
+plt.figure(figsize=(6,3))
 #plt.plot([1700, 3100], [y_graph, y_graph], color='lightgrey', label='root chord')
 #plt.scatter(x_leroot, y_graph, marker='|')
 #plt.axvline(x = x_hinge*1000)
@@ -129,8 +129,9 @@ plt.scatter(x_cg_2, y_graph, label='CG case 2', marker='x')
 plt.scatter(x_cg_3, y_graph, label='CG case 3', marker='x')
 plt.scatter(x_cg_4, y_graph, label='CG case 4', marker='x')
 plt.yticks(color='white')
-plt.xlabel('Location along the fuselage')
-plt.legend(loc = 'lower right', fontsize = 10)
+plt.xlabel('Location along the fuselage [m]')
+plt.legend(loc = 'lower right', fontsize = 9)
+plt.tight_layout()
 plt.show()
 
 

@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-W = 22000
-clmax = 1.7
-S = 14
+W = 26000
+clmax = 1.92
+S = 11.3
 clalpha = 2*np.pi #per radian
 
 n_max = 2.5 

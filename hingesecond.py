@@ -50,7 +50,7 @@ print(f'HELICAL GEAR -- \n'
       f'Axial Pitch: {axial_pitch:.2f} mm, \n'
       f'Helix Angle: {helix_angle:.2f} degrees')
 print()
-print(f'TOOTH DIMENSIONS: --'
+print(f'TOOTH DIMENSIONS: -- \n0.'
       f'Addendum: {a:.2f} mm, \n'
       f'Dedendum: {b:.2f} mm, \n'
       f'Tooth Thickness: {t:.2f} mm, \n'
@@ -88,7 +88,7 @@ print()
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 ##TORQUE REQUIREMENTS
 g = 9.81
-m_wing = 190
+m_wing = 1900.1
 
 #there is no angular acceleration -- no inertial torque
 #Inertial torque
@@ -132,6 +132,7 @@ stress = 650 # MPa
 face = width/1000 #face widht in m #width defined in WORM section
 m = module / 1000 # module in m
 Y = (0.399+0.408)/2 #Lewis form factor for total number of teeth -- 47 teeth
+print(Y)
 
 tangential_load = stress * 10**6 * face * m * Y  # Tangential load in N
 torque_on_gear = tangential_load * R /1000 / 1000# Torque in kNm first for m second fir k
@@ -150,6 +151,7 @@ n_gears = 2 #total number of worm gears
 threads_worm = 3
 gear_ratio = teeth / threads_worm
 torque = total_torque / n_gears  #in kNm 
+
 angle_to_rotate = 45 #degrees
 helical_angle_rad = deg_to_rad(angle_to_rotate) # angle of the helical gear in radians 
 time = 1 #second
@@ -166,10 +168,12 @@ motor_torque_requirement = motor_power_requirement / worm_angular_velocity  #the
 
 
 print(f'MOTOR REQUIREMENTS: -- \n'
+      f'Gear ratio: {gear_ratio:.2f}, \n' 
       f'Helical velocity: {helical_angular_velocity:.2f} rad/s, \n'
       f'Worm velocity: {worm_velocity:.2f} deg/s, \n'
       f'Worm velocity: {worm_angular_velocity:.2f} rad/s, \n'   
       f'RPM of the motor: {worm_RPM:.2f} RPM \n'
+      f'Power Requirement: {power_requirement:.2f} kW, \n'
       f'Motor Power Requirement: {motor_power_requirement:.2f} kW, \n'
       f'Motor Torque Requirement: {motor_torque_requirement:.2f} kNm, \n')
 
