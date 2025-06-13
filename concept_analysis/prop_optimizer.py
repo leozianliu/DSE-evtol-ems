@@ -44,6 +44,7 @@ class Optimizer:
 
         big_prop.compute_maximum_RPM(use_maximum_RPM=True)
         small_prop.compute_maximum_RPM(use_maximum_RPM=True)
+        print(2 * big_prop.maximum_RPM, 2 * small_prop.maximum_RPM)
 
         dt = 1 # s
 
@@ -104,7 +105,7 @@ class Optimizer:
         ## Cruise
         #----------------------------------------------------------------------------------------------------------------------------------------
 
-        v_cruise = 55.56 * 1.25 # m/s
+        v_cruise = 55.56 * 1 # m/s
         t_cruise = 18 * 60 # seconds
 
         t_start_cruise = self.time_arr[-1]
@@ -113,6 +114,7 @@ class Optimizer:
 
         big_prop.change_flight_regime(v_cruise, self.drag(v_cruise + big_prop.vi, v_cruise) * self.big_loading_factor / 2)
         small_prop.change_flight_regime(v_cruise, self.drag(v_cruise + big_prop.vi, v_cruise) * self.small_loading_factor / 2)
+
 
         velocity_fuselage = v_cruise
         velocity_wing = v_cruise + big_prop.vi
@@ -192,6 +194,9 @@ class Optimizer:
 
         self.total_energy = np.sum(energy)
         self.flight_altitude_arr = flight_altitude_arr
+        self.power_arr_small = np.array(self.power_arr_small)
+        self.power_arr_big = np.array(self.power_arr_big)
+
         self.power_arr_total = 2 * (np.array(self.power_arr_big) + np.array(self.power_arr_small))
 
         if plot:

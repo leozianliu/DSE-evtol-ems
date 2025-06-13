@@ -35,16 +35,16 @@ for T_val, v_val, rpm_val, n_val in itertools.product(T, v, rpm, n_blades):
         continue  # Skip to the next combination
     
 
-    if 0 < optim.total_energy < best_energy and any(optim.power_arr_big) > 0 and 50 < optim.total_energy < 100:
+    if 0 < optim.total_energy > best_energy and any(optim.power_arr_big) > 0 and 50 < optim.total_energy < 100:
         best_energy = optim.total_energy
         best_T = T_val
         best_v = v_val
         best_rpm = rpm_val
         best_blades = n_val
         #print(best_energy, best_T, best_v, best_rpm, best_blades)
-    if 200 > optim.total_energy > 10:
+    if optim.total_energy > 10:
         all_energies.append(optim.total_energy) 
-    if i == 211:
+    if i == 10:
         print(T_val, v_val, rpm_val, optim.total_energy)
 
 

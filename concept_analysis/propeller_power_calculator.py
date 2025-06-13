@@ -126,7 +126,7 @@ class Propeller:
 
         cl, cd = get_aero_coefficients(alpha)
         
-        self.chord = 2 * total_circulation / v_rel / cl # in milimeters for visibility
+        self.chord = 2 * total_circulation / v_rel / cl # in meters  
         self.twist = alpha + np.degrees(phi)
 
         v_axial = vline - v_tang * np.tan(phi)
@@ -156,15 +156,22 @@ class Propeller:
         vrel = np.sqrt((self.velocity + self.vi) ** 2 + (self.omega * self.r) ** 2)
 
         inflow_angle = np.arctan2((self.velocity + self.vi), self.omega * self.r)  # radians
-        aoa_deg = self.twist - np.radians(inflow_angle)
+        aoa_deg = self.twist - np.degrees(inflow_angle)
 
         cl, cd = get_aero_coefficients(aoa_deg)
+
         integrand = self.number_blades / 2 * self.density * self.chord * cd * vrel ** 3
 
         self.power_profile = np.trapz(integrand, self.r)
+
         self.power_induced = self.thrust * (self.velocity + self.vi)
         self.shaft_power = self.power_induced + self.power_profile
+        self.torque = self.shaft_power / self.omega
         
+        self.advance_ratio = self.velocity / (self.rpm / 60) / self.diameter
+        self.thrust_coefficient = self.thrust / (self.density * (self.rpm/60) ** 2 * self.diameter ** 4)
+        self.power_coefficient = self.shaft_power / (self.density * (self.rpm/60) ** 3 * self.diameter ** 5)
+        self.efficiency = self.advance_ratio * self.thrust_coefficient / self.power_coefficient
 
         return
     
@@ -195,7 +202,7 @@ class Propeller:
                 fig, axs = plt.subplots(1, 2, figsize=(12, 5))
 
                 # Plot Chord
-                axs[0].plot(self.r / self.rtip, self.chord * 1000, color='red')
+                axs[0].plot(self.r / self.rtip, 15 * self.chord * 1000, color='red')
                 axs[0].set_title('Chord Distribution')
                 axs[0].set_xlabel('Position along blade radius')
                 axs[0].set_ylabel('Chord lenght [mm]')
