@@ -8,7 +8,7 @@ class LoadsCalculator:
     def __init__(self, flight_mode, thrust, num_points):
         self.engine_positions_y = np.array([2.415, 5.029])  # [2.415, 5.029] y-locations from along wingbox (m) 4.884
         self.engine_offsets_x = np.array([1, 1])    # x-offsets from wingbox(m)
-        self.engine_thrusts = np.array(thrust)  #  N cruise: [935, 481]   vertical: [5000.0, 9000.0] 
+        self.engine_thrusts = np.array(thrust)  #  N cruise: [935, 481]   vertical: [9000.0, 5000.0] 
         self.engine_weights = np.array([100, 100]) * 9.81   # [50, 60] N
         self.half_span = 6.241                                 # m  6.241      
         self.num_points = num_points
@@ -177,14 +177,14 @@ class LoadsCalculator:
         moment_z[self.y_points < self.fuselage_width] = 0 
         moment_x[self.y_points < self.fuselage_width] = 0 
         torque[self.y_points < self.fuselage_width] = 0 
-        normal[self.y_points < self.fuselage_width] = 0
+        #normal[self.y_points < self.fuselage_width] = 0
 
         return shear_x, shear_z, moment_x, moment_z, torque, normal
     
-calculator = LoadsCalculator('horizontal', [935, 481], 300)
+calculator = LoadsCalculator('horizontal', [935, 481], 400)
 calculator.thrust_loads()
 calculator.engine_weight_loads()
-calculator.weight_loads(0)
+calculator.weight_loads(2500)
 calculator.aero_moment()
 shear_lift, shear_drag, moment_lift, moment_drag, normal_lift = calculator.aerodynamic_loads(lift= 2.5 * aero.lift_gull_rh, drag = np.zeros(43, dtype=int))
 
@@ -206,46 +206,81 @@ if __name__ == "__main__":
     # print("Moment Z:\n", moment_z)
     # print("Torque:\n", torque)
 
-    fig, axs = plt.subplots(2, 3, figsize=(18, 10))  # 2 rows, 3 columns
+fig, axs = plt.subplots(2, 3, figsize=(18, 10))  # 2 rows, 3 columns
+axs = axs.flatten()
 
-# Flatten for easier indexing
-    axs = axs.flatten()
+# Plot 1: Shear X (kN)
+axs[0].plot(calculator.y_points, shear_x / 1000, color='blue', linewidth=2)
+axs[0].fill_between(calculator.y_points, shear_x / 1000, 0, color='blue', alpha=0.3)
+axs[0].set_title("Shear Force X-direction")
+# axs[0].set_xlabel("Spanwise location y (m)", fontsize=12)
+axs[0].set_ylabel("Shear X (kN)", fontsize=14)
+axs[0].tick_params(axis='both', labelsize=13)
+axs[0].grid(True)
+axs[0].spines['bottom'].set_position(('outward', 0))
 
-# Plot 1: Shear X
-    axs[0].plot(calculator.y_points, shear_x)
-    axs[0].set_title("Shear Force X-direction")
-    axs[0].set_xlabel("Spanwise location y (m)")
-    axs[0].set_ylabel("Shear X (N)")
+# # Plot 2: Shear Z (kN)
+axs[1].plot(calculator.y_points, shear_z / 1000, color='green', linewidth=2)
+axs[1].fill_between(calculator.y_points, shear_z / 1000, 0, color='green', alpha=0.3)
+axs[1].set_title("Shear Force Z-direction")
+axs[1].set_ylabel("Shear Z (kN)", fontsize=13)
+axs[1].tick_params(axis='both', labelsize=12)
+axs[1].grid(True)
+axs[1].spines['bottom'].set_position(('outward', 0))
 
-# Plot 2: Shear Z
-    axs[1].plot(calculator.y_points, shear_z)
-    axs[1].set_title("Shear Force Z-direction")
-    axs[1].set_xlabel("Spanwise location y (m)")
-    axs[1].set_ylabel("Shear Z (N)")
+# Plot 3: Torque (kNm)
+axs[2].plot(calculator.y_points, torque / 1000, color='orange', linewidth=2)
+axs[2].fill_between(calculator.y_points, torque / 1000, 0, color='orange', alpha=0.3)
+axs[2].set_title("Torsional Moment")
+# axs[2].set_xlabel("Spanwise location y (m)", fontsize=13)
+axs[2].set_ylabel("Torque (kNm)", fontsize=14)
+axs[2].tick_params(axis='both', labelsize=13)
+axs[2].grid(True)
+axs[2].spines['bottom'].set_position(('outward', 0))
 
-# Plot 3: Moment X
-    axs[2].plot(calculator.y_points, moment_x)
-    axs[2].set_title("Bending Moment around X-axis")
-    axs[2].set_xlabel("Spanwise location y (m)")
-    axs[2].set_ylabel("Moment X (Nm)")
+# # Plot 4: Moment Z (kNm)
+axs[3].plot(calculator.y_points, moment_z / 1000, color='purple', linewidth=2)
+axs[3].fill_between(calculator.y_points, moment_z / 1000, 0, color='purple', alpha=0.3)
+axs[3].set_title("Bending Moment around Z-axis")
+axs[3].set_xlabel("Spanwise location y (m)", fontsize=14)
+axs[3].set_ylabel("Moment Z (kNm)", fontsize=14)
+axs[3].tick_params(axis='both', labelsize=13)
+axs[3].grid(True)
+axs[3].spines['bottom'].set_position(('outward', 0))
+axs[3].set_ylim(bottom=-3.5)  # was -3500 Nm → -3.5 kNm
 
-# Plot 4: Moment Z
-    axs[3].plot(calculator.y_points, moment_z)
-    axs[3].set_title("Bending Moment around Z-axis")
-    axs[3].set_xlabel("Spanwise location y (m)")
-    axs[3].set_ylabel("Moment Z (Nm)")
+# # Plot 4: Moment Z (kNm)
+# axs[1].plot(calculator.y_points, moment_z / 1000, color='purple', linewidth=2)
+# axs[1].fill_between(calculator.y_points, moment_z / 1000, 0, color='purple', alpha=0.3)
+# axs[1].set_title("Bending Moment around Z-axis")
+# axs[1].set_xlabel("Spanwise location y (m)", fontsize=14)
+# axs[1].set_ylabel("Moment Z (kNm)", fontsize=14)
+# axs[1].tick_params(axis='both', labelsize=13)
+# axs[1].grid(True)
+# axs[1].spines['bottom'].set_position(('outward', 0))
+# axs[1].set_ylim(bottom=-30)  # was -3500 Nm → -3.5 kNm
 
-# Plot 5: Torque
-    axs[4].plot(calculator.y_points, torque)
-    axs[4].set_title("Torsional Moment (Torque)")
-    axs[4].set_xlabel("Spanwise location y (m)")
-    axs[4].set_ylabel("Torque (Nm)")
+# Plot 5: Moment X (kNm)
+axs[4].plot(calculator.y_points, moment_x / 1000, color='red', linewidth=2)
+axs[4].fill_between(calculator.y_points, moment_x / 1000, 0, color='red', alpha=0.3)
+axs[4].set_title("Bending Moment around X-axis")
+axs[4].set_xlabel("Spanwise location y (m)", fontsize=14)
+axs[4].set_ylabel("Moment X (kNm)", fontsize=14)
+axs[4].tick_params(axis='both', labelsize=13)
+axs[4].grid(True)
+axs[4].spines['bottom'].set_position(('outward', 0))
+axs[4].set_ylim(top=80)  # was 80000 Nm → 80 kNm
 
-# Plot 6: Normal
-    axs[5].plot(calculator.y_points, normal)
-    axs[5].set_title("Normal")
-    axs[5].set_xlabel("Spanwise location y (m)")
-    axs[5].set_ylabel("Normal load (N)")
+# Plot 6: Normal (kN)
+normal_color = '#4682B4'  # Steel blue
+axs[5].plot(calculator.y_points, normal / 1000, color=normal_color, linewidth=2)
+axs[5].fill_between(calculator.y_points, normal / 1000, 0, color=normal_color, alpha=0.3)
+axs[5].set_title("Normal")
+axs[5].set_xlabel("Spanwise location y (m)", fontsize=14)
+axs[5].set_ylabel("Normal load (kN)", fontsize=14)
+axs[5].tick_params(axis='both', labelsize=13)
+axs[5].grid(True)
+axs[5].spines['bottom'].set_position(('outward', 0))
 
-    plt.tight_layout()
-    plt.show()
+plt.tight_layout(pad=2)
+plt.show()
