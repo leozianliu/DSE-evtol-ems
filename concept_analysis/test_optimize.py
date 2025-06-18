@@ -1,12 +1,12 @@
 import numpy as np
-from scipy.optimize import minimize_scalar
 from loads import LoadsCalculator
 from tube_geometry import TubeGeometry
 from stress_job import StressCalculations
 import aeroloads as aero
 import matplotlib.pyplot as plt
+from scipy.optimize import minimize
 
-num_points = 10
+num_points = 200
 
 def optimize_thickness_distribution(half_span, root_diameter, taper_ratio,
                                     stress_limits, flight_mode, load_factor):
@@ -14,19 +14,22 @@ def optimize_thickness_distribution(half_span, root_diameter, taper_ratio,
     span_points = np.linspace(0, half_span, num_points)
     thicknesses = np.zeros(num_points)
 
-
+    # Precompute loads
     calculator = LoadsCalculator(flight_mode, thrust, num_points)
     calculator.thrust_loads()
     calculator.engine_weight_loads()
     calculator.aero_moment()
-    calculator.aerodynamic_loads(lift= load_factor * aero.lift_gull_rh, drag = np.zeros(43, dtype=int))
+    calculator.aerodynamic_loads(
+        lift=load_factor * aero.lift_gull_rh,
+        drag=np.zeros(43, dtype=int)
+    )
     calculator.weight_loads(2500)
-
     shear_x, shear_z, moment_x, moment_z, torque, normal = calculator.combined_loads()
     load = [shear_x, shear_z, moment_x, moment_z, torque, normal]
 
     for i, x in enumerate(span_points):
-        def optimize(t):
+
+        def compute_combined_stress(t):
             tube = TubeGeometry(
                 span=half_span * 2,
                 root_diameter=root_diameter,
@@ -34,56 +37,72 @@ def optimize_thickness_distribution(half_span, root_diameter, taper_ratio,
                 taper_ratio=taper_ratio,
                 true_if_steps_false_if_tapered=False
             )
-
             geometry = tube.get_tube_matrix(num_points)
-            
+            geometry_at_i = [g[i] for g in geometry]
+
             cross_section = [
-                np.array([geometry[0][i]]),  # thickness
-                np.array([geometry[1][i]]),  # inertia_Ix
-                np.array([geometry[2][i]]),  # inertia_J
-                np.array([geometry[3][i]]),  # radius_out
-                np.array([geometry[4][i]])   # y_value
+                np.array([geometry_at_i[0]]),  # thickness
+                np.array([geometry_at_i[1]]),  # inertia_Ix
+                np.array([geometry_at_i[2]]),  # inertia_J
+                np.array([geometry_at_i[3]]),  # radius_out
+                np.array([geometry_at_i[4]])   # y_value
             ]
 
             local_load = [
-                np.array([load[0][i]]),     # shear_x 
-                np.array([load[1][i]]),     # shear_z
-                np.array([load[2][i]]),     # moment_x
-                np.array([load[3][i]]),     # moment_z
-                np.array([load[4][i]]),     # torque
-                np.array([load[5][i]])      # normal
+                np.array([load[0][i]]),
+                np.array([load[1][i]]),
+                np.array([load[2][i]]),
+                np.array([load[3][i]]),
+                np.array([load[4][i]]),
+                np.array([load[5][i]])
             ]
 
             stress_calc = StressCalculations(cross_section, local_load, 360)
             stress = stress_calc.get_combined_stresses_tube()
 
-            max_stress = stress[0][0]
-            min_stress = stress[1][0]
-            max_shear = stress[2][0]
-            min_shear = stress[3][0]
+            sigma_max = max(abs(stress[0][0]), abs(stress[1][0]))
+            tau_max = max(abs(stress[2][0]), abs(stress[3][0]))
+            combined = np.sqrt(sigma_max**2 + 3 * tau_max**2)
 
-            #Combined stress
-            max_combined_stress = (max_stress**2 + 3 * max_shear**2)**0.5
-            min_combined_stress = (min_stress**2 + 3 * min_shear**2)**0.5
+            return combined
 
-            penalty = 0.0
-            if not (stress_limits['sigma_min'] <= max_stress <= stress_limits['sigma_max']):
-                penalty += (abs(max_stress - np.clip(max_stress, stress_limits['sigma_min'], stress_limits['sigma_max']))) ** 2
-            if not (stress_limits['sigma_min'] <= min_stress <= stress_limits['sigma_max']):
-                penalty += (abs(min_stress - np.clip(min_stress, stress_limits['sigma_min'], stress_limits['sigma_max']))) ** 2
-            if not (stress_limits['tau_min'] <= max_shear <= stress_limits['tau_max']):
-                penalty += (abs(max_shear - np.clip(max_shear, stress_limits['tau_min'], stress_limits['tau_max']))) ** 2
-            if not (stress_limits['tau_min'] <= min_shear <= stress_limits['tau_max']):
-                penalty += (abs(min_shear - np.clip(min_shear, stress_limits['tau_min'], stress_limits['tau_max']))) ** 2
-            if not (stress_limits['sigma_min'] <= max_combined_stress <= stress_limits['sigma_max']):
-                penalty += (abs(max_combined_stress - np.clip(max_combined_stress, stress_limits['sigma_min'], stress_limits['sigma_max']))) ** 2
-            if not (stress_limits['sigma_min'] <= min_combined_stress <= stress_limits['sigma_max']):
-                penalty += (abs(min_combined_stress - np.clip(min_combined_stress, stress_limits['sigma_min'], stress_limits['sigma_max']))) ** 2
-            
-            return t + 1e150 * penalty
+        def obj(t_arr):
+            return t_arr[0]  # minimize thickness
 
-        opt = minimize_scalar(optimize, bounds=(0.001, 0.1), method='bounded')
-        thicknesses[i] = opt.x
+        def constraint_upper(t_arr):
+            t = t_arr[0]
+            combined = compute_combined_stress(t)
+            if np.isnan(combined) or combined > 1e9:
+                return -1  # definitely infeasible
+            return stress_limits['sigma_max'] - combined
+
+        def constraint_lower(t_arr):
+            t = t_arr[0]
+            combined = compute_combined_stress(t)
+            if np.isnan(combined) or combined > 1e9:
+                return -1
+            return combined - stress_limits['sigma_min']
+
+        constraints = [
+            {'type': 'ineq', 'fun': constraint_upper},
+            {'type': 'ineq', 'fun': constraint_lower}
+        ]
+
+        result = minimize(
+            obj,
+            x0=[0.02],  # avoid initial flat region
+            bounds=[(0.001, 0.1)],
+            constraints=constraints,
+            method='SLSQP',
+            options={'ftol': 1e-9, 'disp': False, 'maxiter': 100}
+        )
+
+        if result.success:
+            thicknesses[i] = result.x[0]
+        else:
+            combined = compute_combined_stress(0.1)
+            print(f"⚠️ Optimization failed at i={i}, x={x:.2f} m. Combined stress at t=0.1: {combined:.2f} Pa")
+            thicknesses[i] = 0.1  # Fallback to max bound
 
     return span_points, thicknesses
 
@@ -91,8 +110,8 @@ half_span = 6.2412
 root_diameter = 0.27 
 taper_ratio = 0.5
 stress_limits = {
-    'sigma_max': 340,
-    'sigma_min': -340,
+    'sigma_max': 390,
+    'sigma_min': -390,
     'tau_max': 280,
     'tau_min': -280
 }
@@ -180,8 +199,8 @@ for flight_mode, load_factor, thrust in flight_cases:
         max_tau[i] = max(max_tau[i], tau_max)
         min_tau[i] = min(min_tau[i], tau_min)
 
-        max_combined = np.sqrt(max_sigma ** 2 + 3 * max_tau ** 2)
-        min_combined = np.sqrt(min_sigma ** 2 + 3 * min_tau ** 2)
+max_combined = np.sqrt(max_sigma ** 2 + 3 * max_tau ** 2)
+min_combined = np.sqrt(min_sigma ** 2 + 3 * min_tau ** 2)
 
 fig, axs = plt.subplots(1, 2, figsize=(14, 6))
 

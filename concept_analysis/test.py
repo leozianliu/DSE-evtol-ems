@@ -6,7 +6,7 @@ from stress_job import StressCalculations
 import aeroloads as aero
 import matplotlib.pyplot as plt
 
-num_points = 300
+num_points = 50
 
 def optimize_thickness_distribution(half_span, root_diameter, taper_ratio,
                                     stress_limits, flight_mode, load_factor):
@@ -17,7 +17,7 @@ def optimize_thickness_distribution(half_span, root_diameter, taper_ratio,
     calculator = LoadsCalculator(flight_mode, thrust, num_points)
     calculator.thrust_loads()
     calculator.engine_weight_loads()
-    calculator.aerodynamic_loads(lift=1.1 * load_factor * aero.lift_gull_rh, drag=aero.drag_gull_rh)
+    calculator.aerodynamic_loads(lift=1.1 * load_factor * aero.lift_gull_rh, drag = np.zeros(43, dtype=int))
     calculator.aero_moment()
     calculator.weight_loads(2500)
 
@@ -91,7 +91,7 @@ stress_limits = {
 flight_cases = [
     ('horizontal', lf, t)
     for lf in [-1, 1, 2.5]
-    for t in [[2800, 1400], [0, 4200], [4200, 0]]
+    for t in [[935, 481], [2000, 0], [0, 1000]]
 ] + [
     ('vertical', 1, t)
     for t in [[9000, 5000], [18000, 0], [0, 10000]]
@@ -115,7 +115,7 @@ for flight_mode, load_factor, thrust in flight_cases:
     calculator = LoadsCalculator(flight_mode, thrust, num_points)
     calculator.thrust_loads()
     calculator.engine_weight_loads()
-    calculator.aerodynamic_loads(lift=1.1 * load_factor * aero.lift_gull_rh, drag=aero.drag_gull_rh)
+    calculator.aerodynamic_loads(lift= load_factor * aero.lift_gull_rh, drag = np.zeros(43, dtype=int))
     calculator.weight_loads(2500)
     calculator.aero_moment()
     shear_x, shear_z, moment_x, moment_z, torque, normal = calculator.combined_loads()

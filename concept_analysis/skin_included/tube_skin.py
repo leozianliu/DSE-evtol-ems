@@ -37,7 +37,11 @@ class TubeGeometry:
         #             diameter = diameter
 
         #else:
-        diameter = diameter - self.diameter_ratio * (y - 0.9)
+        if y <= 0.9:
+            diameter = diameter
+
+        else:
+            diameter = diameter - self.diameter_ratio * (y - 0.9)
 
         return diameter
 
@@ -72,7 +76,7 @@ class TubeGeometry:
         if true_if_thinwalled:
             moment_Ix = (np.pi * thickness * diameter ** 3 /8)
             moment_J = (np.pi * thickness * diameter ** 3 /4)
-            radius = diameter /2
+            radius_out = (diameter + thickness)/2
 
         else:
             out_diameter = diameter + thickness
@@ -81,9 +85,31 @@ class TubeGeometry:
             moment_Ix = (np.pi * (out_diameter ** 4 - in_diameter ** 4) /64)
             moment_J = (np.pi * (out_diameter ** 4 - in_diameter ** 4) /32)
 
-            radius = out_diameter /2
+            radius_out = out_diameter /2
 
-        return moment_Ix, moment_J, radius
+        return moment_Ix, moment_J, radius_out
+
+    def get_skin(self, y):
+        thickness_skin = 0.001             # SKIN THICKNESS set here
+        diameter = self.get_diameter(y)
+        dist_from_center = 0.43 * diameter
+        length_skin = 2.94 * diameter
+        area_stringer = 0.000141 # m^2
+        num_stringers = 6       # at the root
+        stringer_steps = [0, 1, 1, 1, 1, 1, 0, 0]   # 5, 4, 3, 2, 1, 1, 1
+
+        for i in range(len(self.thickness_spanwise_steps)):
+            if y > self.thickness_spanwise_steps[i]:
+                num_stringers = num_stringers - stringer_steps[i]
+            else:
+                num_stringers = num_stringers
+
+            # pretty much only parallel axis term, otherwise it's t^3
+            area = 2 * length_skin * thickness_skin + 2 * num_stringers * area_stringer
+            Ixx_skin = area * dist_from_center ** 2
+
+
+        return Ixx_skin, area
 
     def get_tube_matrix(self, num_points_span):
 
@@ -92,7 +118,9 @@ class TubeGeometry:
         thicknesses = []
         inertias_Ix = []
         inertias_J = []
-        radii_out = []
+        radii = []
+        inertiax_skin = []
+        areas_skin = []
 
         for y in y_values:
             t = self.get_thickness(y)
@@ -101,16 +129,32 @@ class TubeGeometry:
             Ix, J, r = self.get_inertia_tube(d, t)
             inertias_Ix.append(Ix)
             inertias_J.append(J)
-            radii_out.append(r)
+            radii.append(d/2)
+            Ixx_skin,area = self.get_skin(y)
+            inertiax_skin.append(Ixx_skin)
+            areas_skin.append(area)
 
-        matrix = np.array([thicknesses, inertias_Ix, inertias_J, radii_out, y_values])
+        matrix = np.array([thicknesses, inertias_Ix, inertias_J, radii, y_values, inertiax_skin, areas_skin])
 
         return matrix
-    
 
-# tube = TubeGeometry(12, 50, 5, [1, 2, 3, 4, 5], [1, 1, 1, 1, 0], [1, 2, 3, 4, 5], [1, 1, 1, 1, 0])
-# tube.get_diameter()
 
-# matrix = tube.get_tube_matrix(100)
-# radii_out = matrix[3]
-# print(radii_out)
+
+
+
+
+# tube = TubeGeometry(6.2412 * 2, 0.27, 0.0048, [1.25, 2.0, 2.65, 3.15, 4.25, 5.15], [0.0003, 0.0007, 0.0008, 0.0006, -0.0008, 0.0021], taper_ratio = 0.5)
+#
+#
+# matrix = tube.get_tube_matrix(624)
+# radii = matrix[3]
+# thickness = matrix[0]
+# dy = 6.2412/624
+# density = 2780
+# mass = 2 * np.sum(2 * np.pi * radii * dy * thickness) * density
+# print(matrix[6])
+
+
+
+
+
