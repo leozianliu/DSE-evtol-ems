@@ -1,7 +1,7 @@
 import numpy as np
 
 #Mission parameters:
-m_payload = 400 #kg
+m_payload = 456 #kg
 flight_radius = 50 #km (radius)
 v_cruise = 200/3.6 #m/s
 v_takeoff = 5 #m/s
@@ -57,7 +57,7 @@ LD_ratio_aircraft = (S_wing * Cl_wing_cruise) / (S_wing * Cd_wing + S_fuselage *
 print("Lift to drag ratio of the aircraft: ", LD_ratio_aircraft)
 
 #Configuration parameters:
-density_batt_whkg = 255 #300Wh/kg (Chinese),
+density_batt_whkg = 275 #300Wh/kg (Chinese),
 density_batt = density_batt_whkg*3600 #J/kg (density of the battery in J/kg)
 DoD = 0.8 #Depth of discharge (DoD), same effect as battery degradation, 80% of the battery capacity is used
 # blockage_factor_tiltwing = 1.0  #0.90 # Free area over total area for propellers in tilt-wing configuration
