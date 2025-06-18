@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 from scipy.optimize import curve_fit
 
 #Mission parameters:
-m_payload = 400 #kg
+m_payload = 456 #kg
 flight_radius = 50 #km (radius)
 v_cruise = 200/3.6 #m/s
 v_takeoff = 5 #m/s
@@ -33,10 +33,10 @@ t_landing = flights * t_landing #sec
 
 #Aircraft parameters:
 eff_motor = 0.95 #Efficiency of the motor
-eff_small_propeller_takeoff = 0.75 #Efficiency of the propeller during takeoff
-eff_small_propeller_cruise = 0.75 #Efficiency of the propeller
-eff_big_propeller_takeoff = 0.80 #Efficiency of the propeller during takeoff
-eff_big_propeller_cruise = 0.80 #Efficiency of the propeller during cruise
+eff_small_propeller_takeoff = 1 #Efficiency of the propeller during takeoff
+eff_small_propeller_cruise = 0.8 #Efficiency of the propeller
+eff_big_propeller_takeoff = 1 #Efficiency of the propeller during takeoff
+eff_big_propeller_cruise = 0.8 #Efficiency of the propeller during cruise
 
 D_rotor_big = 3.20
 D_rotor_small = 2.25
@@ -59,11 +59,11 @@ LD_ratio_aircraft = (S_wing * Cl_wing_cruise) / (S_wing * Cd_wing + S_fuselage *
 print("Lift to drag ratio of the aircraft: ", LD_ratio_aircraft)
 
 #Configuration parameters:
-density_batt_whkg_arr = np.linspace(260, 500, 51) # Wh/kg
+density_batt_whkg_arr = np.linspace(200, 500, 51) # Wh/kg
 density_batt_arr = density_batt_whkg_arr*3600 #J/kg (density of the battery in J/kg)
 DoD = 0.8 #Depth of discharge (DoD), same effect as battery degradation, 80% of the battery capacity is used
 # blockage_factor_tiltwing = 1.0  #0.90 # Free area over total area for propellers in tilt-wing configuration
-m_tilt_mech = 100 #kg for the tilt-wing mechanism
+m_tilt_mech = 120 #kg for the tilt-wing mechanism
 figure_of_merit = 0.8 # converting induced to total power for hovering
 
 #Weight safety factor:
@@ -246,7 +246,7 @@ plt.plot(density_batt_whkg_arr, E_total_arr / 3600 / 1000, color='blue', marker=
 plt.xlabel('Battery energy density (Wh/kg)')
 plt.ylabel('Capacity required (kWh)')
 plt.title('Relationship between battery energy density and required battery capacity')
-plt.axvline(x=280, color='blue', linestyle='--', label='Minimum Denstity = 280 Wh/kg')
+plt.axvline(x=248, color='blue', linestyle='--', label='Minimum Denstity = 248 Wh/kg')
 plt.legend()
 
 plt.subplot(122)

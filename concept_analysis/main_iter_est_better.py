@@ -102,7 +102,7 @@ def singleMotorClimbPower(roc, weight, v_air):
 def singleMotorHoverPower(T, S_disk, eff_motor, eff_propeller):
     P_induced = T**(3/2) / np.sqrt(2 * rho_air * S_disk)
     P_hover = P_induced / figure_of_merit
-    P_hover = P_hover / eff_motor / eff_propeller #W, with efficiency applied
+    P_hover = P_hover / eff_motor #W, with efficiency applied
     return P_hover, P_induced
 
 def singleMotorTakeoffPower(T, v_takeoff, S_disk, eff_motor, eff_propeller):
