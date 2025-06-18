@@ -94,9 +94,9 @@ class XFoil(object):
     def airfoil(self, airfoil):
         self._airfoil = airfoil
         self._lib.set_airfoil(
-            np.asfortranarray(airfoil.x.flatten(), dtype=c_float).ctypes.data_as(fptr),
-            np.asfortranarray(airfoil.y.flatten(), dtype=c_float).ctypes.data_as(fptr),
-            byref(c_int(airfoil.n_coords))
+            np.asfortranarray(airfoil[0], dtype=c_float).ctypes.data_as(fptr),
+            np.asfortranarray(airfoil[1], dtype=c_float).ctypes.data_as(fptr),
+            byref(c_int(len(airfoil[0])))
         )
 
     @property

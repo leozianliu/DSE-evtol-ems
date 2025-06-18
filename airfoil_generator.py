@@ -32,8 +32,8 @@ def generate_data(nacacode, Re):
 
 
 
-camber_values = ['00', '14', '24', '44']  # Example camber values
-thickness_ratios = ['09', '12', '15', '18', '21', '24', '27']  # Example thickness ratios
+camber_values = ['00', '14', '24', '34', '44', '54', '64']  # Example camber values
+thickness_ratios = ['09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30']  # Example thickness ratios
 V = 200/3.6  # Velocity in m/s
 L = 1.0  # Characteristic length in m
 Rho = 1.225  # Density of air in kg/m^3
