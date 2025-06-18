@@ -31,10 +31,10 @@ t_landing = flights * t_landing #sec
 
 #Aircraft parameters:
 eff_motor = 0.95 #Efficiency of the motor
-eff_small_propeller_takeoff = 0.75 #Efficiency of the propeller during takeoff
-eff_small_propeller_cruise = 0.75 #Efficiency of the propeller
-eff_big_propeller_takeoff = 0.80 #Efficiency of the propeller during takeoff
-eff_big_propeller_cruise = 0.80 #Efficiency of the propeller during cruise
+eff_small_propeller_takeoff = 1 #Efficiency of the propeller during takeoff
+eff_small_propeller_cruise = 0.8 #Efficiency of the propeller
+eff_big_propeller_takeoff = 1 #Efficiency of the propeller during takeoff
+eff_big_propeller_cruise = 0.8 #Efficiency of the propeller during cruise
 
 D_rotor_big = 3.20
 D_rotor_small = 2.25
@@ -57,11 +57,11 @@ LD_ratio_aircraft = (S_wing * Cl_wing_cruise) / (S_wing * Cd_wing + S_fuselage *
 print("Lift to drag ratio of the aircraft: ", LD_ratio_aircraft)
 
 #Configuration parameters:
-density_batt_whkg = 300 #300Wh/kg (Chinese),
+density_batt_whkg = 255 #300Wh/kg (Chinese),
 density_batt = density_batt_whkg*3600 #J/kg (density of the battery in J/kg)
 DoD = 0.8 #Depth of discharge (DoD), same effect as battery degradation, 80% of the battery capacity is used
 # blockage_factor_tiltwing = 1.0  #0.90 # Free area over total area for propellers in tilt-wing configuration
-m_tilt_mech = 100 #kg for the tilt-wing mechanism
+m_tilt_mech = 120 #kg for the tilt-wing mechanism
 figure_of_merit = 0.8 # converting induced to total power for hovering
 
 #Weight safety factor:
@@ -90,6 +90,7 @@ print("Disk area original: ", S_disks, "m^2")
 
 def singleMotorCruisePower(weight, v_cruise, eff_motor, eff_propeller):
     T_cruise = weight / LD_ratio_aircraft
+    print("Thrust in cruise: ", T_cruise, "N")
     P_cruise = T_cruise * v_cruise
     P_cruise = P_cruise / eff_motor / eff_propeller #W, with efficiency applied
     return P_cruise
@@ -229,8 +230,8 @@ print("---------------------------------")
 print("Number of iterations: ", n)
 print('Single small motor power takeoff: ', P_takeoff_small / 1000, "kW")
 print('Single big motor power takeoff: ', P_takeoff_big / 1000, "kW")
-print('Single small motor thrust 2x hover: ', T_small_single / 1000, "kN")
-print('Single big motor thrust 2x hover: ', T_big_single / 1000, "kN")
+print('Single small motor thrust 2x hover: ', T_small_single * 2 / 1000, "kN")
+print('Single big motor thrust 2x hover: ', T_big_single * 2 / 1000, "kN")
 print("\n")
 print("P_takeoff: ", P_takeoff_tot / 1000, "kW")
 print("P_transition1: ", P_transition1_tot / 1000, "kW")
