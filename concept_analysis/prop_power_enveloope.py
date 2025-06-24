@@ -6,43 +6,41 @@ from propeller_power_calculator import Propeller
 from prop_optimizer import Optimizer
 
 energies = []
-thrust_setting = 1.1
-max_load_factor = 1.2
+thrust_setting = 1.2 
+max_load_factor = 1.5
 
-optimizer = Optimizer(2 * 2600, max_load_factor, thrust_setting)
-optimizer.compute_power_energy([2444.44, 2444.44], [64.44, 64.44], [2000, 2000], [5, 5])
+optimizer = Optimizer(2600, max_load_factor, thrust_setting)
+
+optimizer.compute_power_energy([5357.142, 5357.142], [140, 140], [3555.55, 3555.55], [5, 5])
 print(2 * optimizer.total_energy)
 
-fig, ax = plt.subplots(figsize=(8, 5))
+from brokenaxes import brokenaxes
+import matplotlib.pyplot as plt
 
-# Plot with better line width and color
-ax.plot(np.array(optimizer.time_arr) / 60, optimizer.power_arr_total / 2,
-        color='tab:red', linewidth=2, label='Total Power')
+# Create the broken x-axis figure
+fig = plt.figure(figsize=(12, 6))
+bax = brokenaxes(
+    xlims=((0, 0.7), (15.4, 16)),  # Show only start and end
+    hspace=0.05,
+    despine=False
+)
 
-ax.plot(np.array(optimizer.time_arr) / 60, optimizer.power_arr_big,
-        color='tab:blue', linewidth=2, label='Big Engines Power')
+# Plot the data
+bax.plot(np.array(optimizer.time_arr) / 60, (optimizer.power_arr_big + optimizer.power_arr_small) / 1.05, 'r-', label='Total Power', linewidth = 4)
+#bax.plot(np.array(optimizer.time_arr) / 60, optimizer.power_arr_big, 'b-', label='Big Engines Power')
+#bax.plot(np.array(optimizer.time_arr) / 60, optimizer.power_arr_small, 'g-', label='Small Engines Power')
 
-ax.plot(np.array(optimizer.time_arr) / 60, optimizer.power_arr_small,
-        color='tab:green', linewidth=2, label='Small Engines Power')
+# Axis and title settings
+bax.set_ylabel('Total Power Usage [kW]', fontsize=14)
+bax.set_xlabel('Flight Time [min]', fontsize=14, labelpad=20)
+#bax.set_title('Power envelope for vertical flight and cruise', fontsize=16, weight='bold')
 
-# Grid and formatting
-ax.grid(True, linestyle='--', alpha=0.6)
-ax.set_title('Power envelope for vertical flight and cruise', fontsize=14, weight='bold')
-ax.set_xlabel('Flight Time [min]', fontsize=12)
-ax.set_ylabel('Total Power Usage [kW]', fontsize=12)
+# Tick label sizes
+bax.tick_params(axis='both', labelsize=12)
 
-# Improve tick formatting
-ax.tick_params(axis='both', which='major', labelsize=10)
+# Legend
+#bax.legend(loc='upper center', fontsize=12)
+bax.grid()
 
-# Optional: Add legend
-ax.legend()
-
-# Tight layout for spacing
-plt.tight_layout()
-
-# Show the plot
+#plt.tight_layout()
 plt.show()
-
-#np.savetxt("power_envelope_small_engine.csv", optimizer.power_arr_small/2, delimiter=",", fmt='%.5f')
-#np.savetxt("power_envelope_big_engine.csv", optimizer.power_arr_big/2, delimiter=",", fmt='%.5f')
-print(np.max(optimizer.power_arr_big/2) / (2876.6607369518106 * np.pi/30), np.max(optimizer.power_arr_small/2) / (4014.237861275711 * np.pi/30))
