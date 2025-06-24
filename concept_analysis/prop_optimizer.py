@@ -19,9 +19,9 @@ class Optimizer:
 
     def drag(self, velocity_wing, velocity_fuselage):
 
-        cd_fuselage = 0.1444908713
+        cd_fuselage = 0.09
         cd_wing = 0.035
-        wing_surface = 14
+        wing_surface = 11.27
         frontal_area = 3.436449
 
         return 0.5 * 1.225 * (velocity_fuselage ** 2 * cd_fuselage * frontal_area + velocity_wing ** 2 * cd_wing * wing_surface) * 1.5
@@ -44,11 +44,11 @@ class Optimizer:
 
         big_prop.compute_maximum_RPM(use_maximum_RPM=True)
         small_prop.compute_maximum_RPM(use_maximum_RPM=True)
-        print(2 * big_prop.maximum_RPM, 2 * small_prop.maximum_RPM)
+        #print(2 * big_prop.maximum_RPM, 2 * small_prop.maximum_RPM)
 
         dt = 1 # s
 
-        htransition = 150
+        htransition = 300
         height_current = 0
 
         flight_altitude_arr = [0]
@@ -74,17 +74,20 @@ class Optimizer:
                 thrust_big = self.thrust_setting * (self.mtow + self.drag(velocity_wing, velocity_fuselage)) / 2 * self.big_loading_factor
                 thrust_small = self.thrust_setting * (self.mtow + self.drag(velocity_wing, velocity_fuselage)) / 2 * self.small_loading_factor
                 acceleration = ((thrust_big + thrust_small) * 2 - self.mtow - self.drag(velocity_wing, velocity_fuselage)) / self.mass
+                
 
                 if acceleration > self.max_load_factor * g:
                     acceleration = self.max_load_factor * g
                     thrust_big = (self.mtow +  self.drag(velocity_wing, velocity_fuselage) + acceleration * self.mass) / 2 * self.big_loading_factor
                     thrust_small = (self.mtow +  self.drag(velocity_wing, velocity_fuselage) + acceleration * self.mass) / 2 * self.small_loading_factor
+                    
 
                 velocity_fuselage += acceleration * dt
-                velocity_wing = velocity_fuselage + big_prop.vi
+                velocity_wing = velocity_fuselage 
             else:
                 velocity_fuselage = climb_speed
-                velocity_wing = velocity_fuselage + big_prop.vi
+                print(self.time_arr[-1] / 60)
+                velocity_wing = velocity_fuselage
                 thrust_big = (self.mtow + self.drag(velocity_wing, velocity_fuselage)) / 2 * self.big_loading_factor
                 thrust_small = (self.mtow + self.drag(velocity_wing, velocity_fuselage)) / 2 * self.small_loading_factor
 
@@ -101,7 +104,7 @@ class Optimizer:
             self.time_arr.append(self.time_arr[-1] + dt)
             energy.append(2 * (big_prop.shaft_power + small_prop.shaft_power) * dt / 3600 / 1000)
         
-
+        #print(big_prop.vi)
         ## Cruise
         #----------------------------------------------------------------------------------------------------------------------------------------
 
@@ -111,14 +114,20 @@ class Optimizer:
         t_start_cruise = self.time_arr[-1]
 
         big_prop.change_flight_regime(v_cruise , self.mtow / 11.3 * self.big_loading_factor / 2)
+        small_prop.change_flight_regime(v_cruise , self.mtow / 11.3 * self.small_loading_factor / 2)
 
-        big_prop.change_flight_regime(v_cruise, self.drag(v_cruise + big_prop.vi, v_cruise) * self.big_loading_factor / 2)
-        small_prop.change_flight_regime(v_cruise, self.drag(v_cruise + big_prop.vi, v_cruise) * self.small_loading_factor / 2)
+        preq = 0.5 * 1.225 * v_cruise**3 * 11.27 * 0.014 + (2600*9.81)**2 / (0.5 * 1.225 * v_cruise * 11.27 * np.pi * 0.9 * 13.1) + v_cruise * (0.09 * 0.5 * 1.225 * v_cruise**2 * 3.436449)
+        
+        t = preq / v_cruise
+        
+        #big_prop.change_flight_regime(v_cruise, t * 0.9 / 2)
+        #small_prop.change_flight_regime(v_cruise, t * 0.1 / 2)
 
 
         velocity_fuselage = v_cruise
         velocity_wing = v_cruise + big_prop.vi
-        height_current = 150
+        #velocity_wing = v_cruise
+        height_current = htransition
 
         while self.time_arr[-1] <= t_start_cruise + 50*1000 / v_cruise:
 
@@ -163,19 +172,21 @@ class Optimizer:
                         acceleration = - self.max_load_factor * g
                         total_thrust = hover_thrust
                         thrust_big = total_thrust / 2 * self.big_loading_factor
-                        thrust_small = total_thrust / 2 * self.big_loading_factor
+                        thrust_small = total_thrust / 2 * self.small_loading_factor
 
                 else:
+                    #velocity_fuselage = - climb_speed
                     acceleration = 0
                     thrust_big = hover_thrust / 2 * self.big_loading_factor
                     thrust_small = hover_thrust / 2 * self.small_loading_factor
 
             else:
-                height_current = brake_distance
+                #height_current = brake_distance
+                #print(self.time_arr[-1] / 60)
                 acceleration = self.max_load_factor * g
                 thrust_big = hover_thrust / 2 * self.big_loading_factor
                 thrust_small = hover_thrust / 2 * self.small_loading_factor
-
+            
             velocity_fuselage += acceleration * dt
             velocity_wing = velocity_fuselage - big_prop.vi
             velocity_arr.append(velocity_fuselage)
@@ -198,6 +209,7 @@ class Optimizer:
         self.power_arr_big = np.array(self.power_arr_big)
 
         self.power_arr_total = 2 * (np.array(self.power_arr_big) + np.array(self.power_arr_small))
+        self.energy = energy
 
         if plot:
             plt.plot(self.time_arr/60, flight_altitude_arr)
