@@ -1,12 +1,12 @@
 import numpy as np
 
 #Mission parameters:
-m_payload = 400 #kg
-flight_radius = 50 #km (radius)
-v_cruise = 200/3.6 #m/s
+m_payload = 500 #kg
+flight_radius = 242 #km (radius)
+v_cruise = 322/3.6 #m/s
 v_takeoff = 5 #m/s
 
-flights = 2 #Number of flights per mission
+flights = 1 #Number of flights per mission
 # One way: takeoff, (transition1), climb, cruise, descent, (transition2), hover, landing
 t_takeoff = 30 #sec
 t_transition1 = 20 
@@ -30,19 +30,19 @@ t_hover = flights * t_hover #sec
 t_landing = flights * t_landing #sec
 
 #Aircraft parameters:
-eff_motor = 0.95 #Efficiency of the motor
-eff_small_propeller_takeoff = 1 #Efficiency of the propeller during takeoff
-eff_small_propeller_cruise = 0.8 #Efficiency of the propeller
-eff_big_propeller_takeoff = 1 #Efficiency of the propeller during takeoff
-eff_big_propeller_cruise = 0.8 #Efficiency of the propeller during cruise
+eff_motor = 0.94 #Efficiency of the motor
+eff_small_propeller_takeoff = 0.73 #Efficiency of the propeller during takeoff
+eff_small_propeller_cruise = 0.92 #Efficiency of the propeller
+eff_big_propeller_takeoff = 0.73 #Efficiency of the propeller during takeoff
+eff_big_propeller_cruise = 0.92 #Efficiency of the propeller during cruise
 
-D_rotor_big = 3.20
-D_rotor_small = 2.25
-S_disks = ((D_rotor_big / 2)**2 * np.pi + (D_rotor_small / 2)**2 * np.pi) * 2 #m^2 (total disk area based on size requirements, can be changed later)
+D_rotor_big = 3.66
+D_rotor_small = 3.66
+S_disks = ((D_rotor_big / 2)**2 * np.pi + (D_rotor_small / 2)**2 * np.pi + (D_rotor_small / 2)**2 * np.pi) * 2 #m^2 (total disk area based on size requirements, can be changed later)
 
 # Aerodynamic parameters:
 Cl_wing_cruise = 0.8 #Lift coefficient of the wing in cruise
-S_wing = 14
+S_wing = 14.9
 Cd_wing = 0.035
 S_fuselage = 3.43
 Cd_fuselage = 0.144
@@ -53,20 +53,20 @@ Cd_strut = 0
 S_gear = 14
 Cd_gear = 0.007 #Drag coefficient of the landing gear
 
-LD_ratio_aircraft = (S_wing * Cl_wing_cruise) / (S_wing * Cd_wing + S_fuselage * Cd_fuselage + S_tail * Cd_tail + S_strut * Cd_strut + S_gear * Cd_gear) #Lift to drag ratio of the aircraft
+LD_ratio_aircraft = 12.6 #Lift to drag ratio of the aircraft
 print("Lift to drag ratio of the aircraft: ", LD_ratio_aircraft)
 
 #Configuration parameters:
-density_batt_whkg = 255 #300Wh/kg (Chinese),
+density_batt_whkg = 235 #300Wh/kg (Chinese),
 density_batt = density_batt_whkg*3600 #J/kg (density of the battery in J/kg)
-DoD = 0.8 #Depth of discharge (DoD), same effect as battery degradation, 80% of the battery capacity is used
+DoD = 1 #Depth of discharge (DoD), same effect as battery degradation, 80% of the battery capacity is used
 # blockage_factor_tiltwing = 1.0  #0.90 # Free area over total area for propellers in tilt-wing configuration
-m_tilt_mech = 120 #kg for the tilt-wing mechanism
-figure_of_merit = 0.8 # converting induced to total power for hovering
+m_tilt_mech = 0 #kg for the tilt-wing mechanism
+figure_of_merit = 0.73 # converting induced to total power for hovering
 
 #Weight safety factor:
 safety_factor_structure_weight = 1 #Safety factor for MTOW estimation due to the kink in the wing structure, not applied to tilt mechanism
-safety_factor_battery_weight = 1.1 #Safety factor for MTOW estimation
+safety_factor_battery_weight = 1 #Safety factor for MTOW estimation
 safety_factor_propulsion_weight = 1 #Safety factor for MTOW estimation
 
 #Code parameters
@@ -206,8 +206,8 @@ while abs(mtow_prev - mtow) > 0.1 and n<1000:
     if n <= 5 or n % 10 == 0:  # Print first 5 iterations then every 10th
         print(f"Iteration {n}: MTOW = {mtow / g:.1f} kg, Total Energy = {E_total/ 3600 / 1000:.2f} kWh")
 
-    P_takeoff_small2xThrust = singleMotorTakeoffPower(T_small_single * 2, v_takeoff, S_rotor_small, eff_motor, eff_small_propeller_takeoff) # Size for 2x hover thrust
-    P_takeoff_big2xThrust = singleMotorTakeoffPower(T_big_single * 2, v_takeoff, S_rotor_big, eff_motor, eff_big_propeller_takeoff) # Size for 2x hover thrust
+    P_takeoff_small2xThrust = singleMotorTakeoffPower(T_small_single, v_takeoff, S_rotor_small, eff_motor, eff_small_propeller_takeoff) # Size for 2x hover thrust
+    P_takeoff_big2xThrust = singleMotorTakeoffPower(T_big_single, v_takeoff, S_rotor_big, eff_motor, eff_big_propeller_takeoff) # Size for 2x hover thrust
 
     # Energy source mass as a function of type, energy capacity and output power
     m_powersource = E_total / density_batt / DoD #kg
@@ -256,3 +256,5 @@ if n >= 1000:
     print("WARNING: Maximum iterations reached without convergence!")
 else:
     print(f"Converged after {n} iterations")
+
+print(S_disks)

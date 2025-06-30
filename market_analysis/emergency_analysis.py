@@ -1,9 +1,6 @@
 import numpy as np
 import pandas as pd
 
-import numpy as np
-import pandas as pd
-
 import geopandas as gpd
 import matplotlib.pyplot as plt
 
@@ -108,10 +105,10 @@ if plot:
 
     # Plot the map
     fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-    merged_map.plot(column='crit_ems', cmap='Reds', legend=True, ax=ax)
+    merged_map.plot(column='crit_ems', cmap='Blues', legend=True, ax=ax)
 
     # Define the colormap and normalization
-    cmap = plt.cm.Reds
+    cmap = plt.cm.Blues
     norm = plt.Normalize(vmin=merged_map['crit_ems'].min(), vmax=merged_map['crit_ems'].max())
 
     # Add a title
