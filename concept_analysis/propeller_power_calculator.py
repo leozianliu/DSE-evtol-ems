@@ -68,13 +68,15 @@ class Propeller:
         
 
     def compute_maximum_RPM(self, use_maximum_RPM=True): # Use this to prevent blades from going supersonic at the tips
+
         
         self.maximum_tip_speed = self.maximum_blade_mach * self.speed_of_sound 
         self.maximum_RPM = 60 * self.maximum_tip_speed / np.pi / self.diameter
 
         if use_maximum_RPM:
             self.rpm = self.maximum_RPM
-            self.advance_ratio = self.velocity / (self.rpm / 60) / self.diameter 
+            self.advance_ratio = self.velocity / (self.rpm / 60) / self.diameter
+            self.omega = self.rpm * np.pi/30 
 
         return 
                 
@@ -119,12 +121,15 @@ class Propeller:
         total_circulation = circulation_function(self.r)
 
         phi = np.arctan((self.velocity + vline) / (self.omega * self.r))
-        alpha = np.array([0]) # degrees
+        alpha = np.array([10]) # degrees
 
         v_tang = total_circulation * self.number_blades / (4 * np.pi * self.r)
         v_rel = np.sqrt((self.velocity + vline) ** 2 + (self.omega * self.r) ** 2) - v_tang / np.cos(phi)
 
         cl, cd = get_aero_coefficients(alpha)
+        cl = cl / cl * 0.4
+        cd = cd / cd * 0.02
+        alpha = alpha * 0
         
         self.chord = 2 * total_circulation / v_rel / cl # in meters  
         self.twist = alpha + np.degrees(phi)
@@ -202,7 +207,7 @@ class Propeller:
                 fig, axs = plt.subplots(1, 2, figsize=(12, 5))
 
                 # Plot Chord
-                axs[0].plot(self.r / self.rtip, 15 * self.chord * 1000, color='red')
+                axs[0].plot(self.r / self.rtip, self.chord / self.rtip, color='red')
                 axs[0].set_title('Chord Distribution')
                 axs[0].set_xlabel('Position along blade radius')
                 axs[0].set_ylabel('Chord lenght [mm]')

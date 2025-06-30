@@ -1,9 +1,9 @@
 import numpy as np
 
 #Mission parameters:
-m_payload = 500 #kg
-flight_radius = 242 #km (radius)
-v_cruise = 322/3.6 #m/s
+m_payload = 456 #kg
+flight_radius = 50 #km (radius)
+v_cruise = 200/3.6 #m/s
 v_takeoff = 5 #m/s
 
 flights = 1 #Number of flights per mission
@@ -57,7 +57,7 @@ LD_ratio_aircraft = 12.6 #Lift to drag ratio of the aircraft
 print("Lift to drag ratio of the aircraft: ", LD_ratio_aircraft)
 
 #Configuration parameters:
-density_batt_whkg = 235 #300Wh/kg (Chinese),
+density_batt_whkg = 275 #300Wh/kg (Chinese),
 density_batt = density_batt_whkg*3600 #J/kg (density of the battery in J/kg)
 DoD = 1 #Depth of discharge (DoD), same effect as battery degradation, 80% of the battery capacity is used
 # blockage_factor_tiltwing = 1.0  #0.90 # Free area over total area for propellers in tilt-wing configuration
@@ -102,7 +102,7 @@ def singleMotorClimbPower(roc, weight, v_air):
 def singleMotorHoverPower(T, S_disk, eff_motor, eff_propeller):
     P_induced = T**(3/2) / np.sqrt(2 * rho_air * S_disk)
     P_hover = P_induced / figure_of_merit
-    P_hover = P_hover / eff_motor / eff_propeller #W, with efficiency applied
+    P_hover = P_hover / eff_motor #W, with efficiency applied
     return P_hover, P_induced
 
 def singleMotorTakeoffPower(T, v_takeoff, S_disk, eff_motor, eff_propeller):
